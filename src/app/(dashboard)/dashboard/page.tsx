@@ -173,7 +173,7 @@ export default function DashboardPage() {
               <YAxis tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false}
                 tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
               <Tooltip
-               formatter={(value: number) => [`KSh ${value.toLocaleString()}`, ""]}
+               formatter={(value) => [`KSh ${Number(value).toLocaleString()}`, ""]}
                 contentStyle={{ borderRadius: "12px", border: "1px solid #e2e8f0", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)" }}
               />
               <Area type="monotone" dataKey="revenue" stroke="#3b82f6" strokeWidth={2} fill="url(#colorRevenue)" />

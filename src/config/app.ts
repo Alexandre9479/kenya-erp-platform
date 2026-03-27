@@ -11,10 +11,7 @@ export const APP_CONFIG = {
   trialDays: 30,
 };
 
-export const ROLES_CONFIG: Record
-  UserRole,
-  { label: string; color: string; description: string }
-> = {
+export const ROLES_CONFIG: Record<UserRole, { label: string; color: string; description: string }> = {
   super_admin: {
     label: "Super Admin",
     color: "bg-red-100 text-red-800 border-red-200",
