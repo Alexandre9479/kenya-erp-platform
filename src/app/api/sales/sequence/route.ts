@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db/drizzle";
-import { invoices, quotes, deliveryNotes, receipts } from "@/lib/db/schema";
+import { invoices, quotes, deliveryNotes, receipts, lpos } from "@/lib/db/schema";
 import { eq, count } from "drizzle-orm";
 
 export async function GET(req: NextRequest) {
@@ -27,6 +27,9 @@ export async function GET(req: NextRequest) {
     } else if (type === "receipt") {
       const [result] = await db.select({ count: count() }).from(receipts).where(eq(receipts.tenantId, tenantId));
       nextNumber = result.count + 1;
+    }else if (type === "lpo") {
+      const [result] = await db.select({ count: count() }).from(lpos).where(eq(lpos.tenantId, tenantId));
+      nextNumber = result.count + 1;
     }
 
     const prefixMap: Record<string, string> = {
@@ -34,6 +37,7 @@ export async function GET(req: NextRequest) {
       quote: "QTE",
       delivery_note: "DN",
       receipt: "RCP",
+      lpo: "LPO",
     };
 
     const prefix = prefixMap[type] || "DOC";
