@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { formatDate } from "@/lib/utils/helpers";
+import PaymentModal from "@/components/sales/PaymentModal";
 
 interface Invoice {
   id: string;
@@ -44,6 +45,8 @@ export default function SalesPage() {
     total: 0, paid: 0, pending: 0, overdue: 0,
     totalRevenue: 0, totalPending: 0,
   });
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentInvoice, setPaymentInvoice] = useState<Invoice | null>(null);
 
   const fetchInvoices = useCallback(async () => {
     setLoading(true);
@@ -287,6 +290,19 @@ export default function SalesPage() {
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center justify-center gap-1">
+                          {/* Payment Button Add-in */}
+                          {["sent", "partial", "overdue"].includes(invoice.status) && (
+                            <button
+                              onClick={() => {
+                                setPaymentInvoice(invoice);
+                                setShowPaymentModal(true);
+                              }}
+                              className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-green-50 text-slate-400 hover:text-green-600 transition-colors"
+                              title="Record Payment"
+                            >
+                              <DollarSign className="w-4 h-4" />
+                            </button>
+                          )}
                           <Link href={`/sales/${invoice.id}`}
                             className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-blue-50 text-slate-400 hover:text-blue-600 transition-colors">
                             <Eye className="w-4 h-4" />
@@ -309,6 +325,12 @@ export default function SalesPage() {
           </table>
         </div>
       </div>
+       <PaymentModal
+        open={showPaymentModal}
+        onClose={() => { setShowPaymentModal(false); setPaymentInvoice(null); }}
+        onSuccess={fetchInvoices}
+        invoice={paymentInvoice}
+      />
     </div>
   );
 }
