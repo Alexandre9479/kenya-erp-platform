@@ -57,7 +57,7 @@ export async function POST(
     const newAmountDue = Number(invoice.total) - newAmountPaid;
 
     // Determine new status
-    let newStatus: string;
+    let newStatus: "paid" | "partial" | typeof invoice.status;
     if (newAmountDue <= 0.01) {
       newStatus = "paid";
     } else if (newAmountPaid > 0) {
