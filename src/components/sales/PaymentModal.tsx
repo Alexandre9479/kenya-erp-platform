@@ -159,7 +159,7 @@ export default function PaymentModal({ open, onClose, onSuccess, invoice }: Paym
                 max={amountDue}
                 value={amount}
                 onChange={e => setAmount(e.target.value)}
-                className="w-full pl-12 pr-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500 text-right font-semibold text-lg"
+                className="w-full pl-12 pr-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 text-right font-semibold text-lg"
                 placeholder="0.00"
               />
             </div>
