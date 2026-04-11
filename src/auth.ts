@@ -1,7 +1,7 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
-import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/server";
 import type { UserRole } from "@/lib/types/supabase";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
@@ -15,7 +15,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
 
-        const supabase = await createClient();
+        const supabase = await createServiceClient();
 
         // Step 1: Get user by email
         const { data: user, error: userError } = await supabase
