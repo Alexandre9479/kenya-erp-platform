@@ -54,6 +54,7 @@ export interface Database {
             >
           >;
         Update: Partial<Database["public"]["Tables"]["tenants"]["Insert"]>;
+        Relationships: [];
       };
       users: {
         Row: {
@@ -81,6 +82,7 @@ export interface Database {
             >
           >;
         Update: Partial<Database["public"]["Tables"]["users"]["Insert"]>;
+        Relationships: [];
       };
       products: {
         Row: {
@@ -112,6 +114,7 @@ export interface Database {
             >
           >;
         Update: Partial<Database["public"]["Tables"]["products"]["Insert"]>;
+        Relationships: [];
       };
       categories: {
         Row: {
@@ -133,6 +136,7 @@ export interface Database {
             >
           >;
         Update: Partial<Database["public"]["Tables"]["categories"]["Insert"]>;
+        Relationships: [];
       };
       warehouses: {
         Row: {
@@ -155,6 +159,7 @@ export interface Database {
             >
           >;
         Update: Partial<Database["public"]["Tables"]["warehouses"]["Insert"]>;
+        Relationships: [];
       };
       stock_levels: {
         Row: {
@@ -178,6 +183,7 @@ export interface Database {
         Update: Partial<
           Database["public"]["Tables"]["stock_levels"]["Insert"]
         >;
+        Relationships: [];
       };
       customers: {
         Row: {
@@ -207,6 +213,7 @@ export interface Database {
             >
           >;
         Update: Partial<Database["public"]["Tables"]["customers"]["Insert"]>;
+        Relationships: [];
       };
       suppliers: {
         Row: {
@@ -236,6 +243,7 @@ export interface Database {
             >
           >;
         Update: Partial<Database["public"]["Tables"]["suppliers"]["Insert"]>;
+        Relationships: [];
       };
       invoices: {
         Row: {
@@ -268,6 +276,7 @@ export interface Database {
             >
           >;
         Update: Partial<Database["public"]["Tables"]["invoices"]["Insert"]>;
+        Relationships: [];
       };
       employees: {
         Row: {
@@ -304,6 +313,7 @@ export interface Database {
             >
           >;
         Update: Partial<Database["public"]["Tables"]["employees"]["Insert"]>;
+        Relationships: [];
       };
       accounts: {
         Row: {
@@ -330,10 +340,38 @@ export interface Database {
             >
           >;
         Update: Partial<Database["public"]["Tables"]["accounts"]["Insert"]>;
+        Relationships: [];
       };
     };
-    Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Views: {};
+    Functions: {
+      register_company: {
+        Args: {
+          p_company_name: string;
+          p_company_email: string;
+          p_company_phone: string;
+          p_admin_name: string;
+          p_admin_email: string;
+          p_password_hash: string;
+          p_country?: string;
+          p_kra_pin?: string | null;
+        };
+        Returns: {
+          tenant_id: string;
+          user_id: string;
+          slug: string;
+          trial_ends: string;
+        };
+      };
+      next_doc_number: {
+        Args: { p_tenant_id: string; p_doc_type: string };
+        Returns: number;
+      };
+      seed_chart_of_accounts: {
+        Args: { p_tenant_id: string };
+        Returns: undefined;
+      };
+    };
     Enums: {
       user_role: UserRole;
       invoice_status: InvoiceStatus;
