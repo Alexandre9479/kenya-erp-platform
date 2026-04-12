@@ -975,6 +975,40 @@ VALUES (
 )
 ON CONFLICT (email) DO NOTHING;
 
+-- ─── PART 19: Expenses Table ─────────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS expenses (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id       UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  expense_number  TEXT NOT NULL,
+  title           TEXT NOT NULL,
+  amount          NUMERIC(15,2) NOT NULL CHECK (amount > 0),
+  category        TEXT,
+  date            DATE NOT NULL,
+  status          TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+  submitted_by    UUID REFERENCES users(id) ON DELETE SET NULL,
+  approved_by     UUID REFERENCES users(id) ON DELETE SET NULL,
+  receipt_url     TEXT,
+  notes           TEXT,
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS expenses_number_tenant_idx ON expenses (tenant_id, expense_number);
+CREATE INDEX IF NOT EXISTS expenses_tenant_date_idx ON expenses (tenant_id, date DESC);
+CREATE INDEX IF NOT EXISTS expenses_tenant_status_idx ON expenses (tenant_id, status);
+
+-- Row Level Security
+ALTER TABLE expenses ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "expenses_tenant_isolation" ON expenses
+  USING (
+    tenant_id IN (
+      SELECT tenant_id FROM users WHERE id = auth.uid()
+      UNION ALL
+      SELECT NULL WHERE EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role = 'super_admin')
+    )
+  );
+
 -- ─── END OF SCHEMA ───────────────────────────────────────────────────────────
 -- NEXT STEPS:
 -- 1. Run the script above in Supabase SQL Editor

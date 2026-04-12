@@ -27,10 +27,11 @@ export default async function InvoiceDetailPage({
 
   if (error || !invoice) notFound();
 
-  const [{ data: items }, { data: customer }] = await Promise.all([
+  const [{ data: items }, { data: customer }, { data: tenant }] = await Promise.all([
     supabase.from("invoice_items").select("*").eq("invoice_id", id).order("sort_order"),
     supabase.from("customers").select("id, name, email, phone, address, city, kra_pin").eq("id", invoice.customer_id).single(),
+    supabase.from("tenants").select("name").eq("id", tenantId).single(),
   ]);
 
-  return <InvoiceDetail invoice={invoice} items={items ?? []} customer={customer} />;
+  return <InvoiceDetail invoice={invoice} items={items ?? []} customer={customer} tenantName={tenant?.name} />;
 }

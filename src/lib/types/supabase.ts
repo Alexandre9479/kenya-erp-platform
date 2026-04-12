@@ -507,6 +507,49 @@ export interface Database {
         >;
         Relationships: [];
       };
+      expenses: {
+        Row: {
+          id: string;
+          tenant_id: string;
+          expense_number: string;
+          title: string;
+          amount: number;
+          category: string | null;
+          date: string;
+          status: "pending" | "approved" | "rejected";
+          submitted_by: string | null;
+          approved_by: string | null;
+          receipt_url: string | null;
+          notes: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          tenant_id: string;
+          expense_number: string;
+          title: string;
+          amount: number;
+          category?: string | null;
+          date: string;
+          status?: "pending" | "approved" | "rejected";
+          submitted_by?: string | null;
+          approved_by?: string | null;
+          receipt_url?: string | null;
+          notes?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<{
+          title: string;
+          amount: number;
+          category: string | null;
+          date: string;
+          status: "pending" | "approved" | "rejected";
+          approved_by: string | null;
+          receipt_url: string | null;
+          notes: string | null;
+        }>;
+        Relationships: [];
+      };
     };
     Views: {};
     Functions: {

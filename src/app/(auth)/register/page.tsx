@@ -584,22 +584,15 @@ function RegisterWizard() {
   };
 
   return (
-    <div className="w-full max-w-115">
-      {/* Brand header */}
-      <div className="text-center mb-6">
-        <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-blue-600 shadow-xl shadow-blue-600/40 mb-3">
-          <Building2 className="w-6 h-6 text-white" />
-        </div>
-        <h1 className="text-xl font-bold text-white tracking-tight">
-          Kenya ERP Platform
-        </h1>
-        <p className="text-slate-400 text-sm mt-0.5">
-          Start your 30-day free trial today
-        </p>
+    <div className="w-full max-w-md">
+      {/* Page heading */}
+      <div className="mb-6">
+        <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">Create your account</h2>
+        <p className="text-slate-500 mt-1.5">Start your 30-day free trial — no credit card required</p>
       </div>
 
       {/* Wizard card */}
-      <Card className="shadow-2xl border-0 bg-white">
+      <Card className="shadow-sm border border-slate-200 bg-white">
         <CardContent className="pt-6 pb-6">
           <StepIndicator current={step} />
 
@@ -641,11 +634,11 @@ function RegisterWizard() {
       </Card>
 
       {/* Sign in link */}
-      <p className="text-center text-sm text-slate-400 mt-5">
+      <p className="text-center text-sm text-slate-500 mt-5">
         Already have an account?{" "}
         <Link
           href="/login"
-          className="text-white font-semibold hover:underline underline-offset-4"
+          className="font-semibold text-indigo-600 hover:text-indigo-700 hover:underline underline-offset-4 transition-colors"
         >
           Sign in
         </Link>
