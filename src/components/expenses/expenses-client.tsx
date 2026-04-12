@@ -11,7 +11,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle,
 } from "@/components/ui/sheet";
@@ -22,10 +21,11 @@ import {
 type Expense = {
   id: string;
   expense_number: string;
-  title: string;
+  description: string;
   amount: number;
-  category: string | null;
-  date: string;
+  category: string;
+  expense_date: string;
+  payment_method: string;
   status: "pending" | "approved" | "rejected";
   notes: string | null;
   created_at: string;
@@ -45,13 +45,21 @@ const CATEGORIES = [
   "Miscellaneous",
 ];
 
+const PAYMENT_METHODS = [
+  { value: "cash",          label: "Cash" },
+  { value: "mpesa",         label: "M-Pesa" },
+  { value: "bank_transfer", label: "Bank Transfer" },
+  { value: "cheque",        label: "Cheque" },
+  { value: "card",          label: "Card" },
+];
+
 const KES = (v: number) =>
   new Intl.NumberFormat("en-KE", { minimumFractionDigits: 2 }).format(v);
 
 const statusConfig = {
-  pending:  { label: "Pending",  icon: Clock,          className: "bg-amber-100 text-amber-700 border-amber-200" },
-  approved: { label: "Approved", icon: CheckCircle2,   className: "bg-emerald-100 text-emerald-700 border-emerald-200" },
-  rejected: { label: "Rejected", icon: XCircle,        className: "bg-red-100 text-red-700 border-red-200" },
+  pending:  { label: "Pending",  icon: Clock,        className: "bg-amber-100 text-amber-700 border-amber-200" },
+  approved: { label: "Approved", icon: CheckCircle2, className: "bg-emerald-100 text-emerald-700 border-emerald-200" },
+  rejected: { label: "Rejected", icon: XCircle,      className: "bg-red-100 text-red-700 border-red-200" },
 };
 
 interface Props {
@@ -67,29 +75,31 @@ export default function ExpensesClient({ initialExpenses, total }: Props) {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  // Form state
   const [form, setForm] = useState({
-    title: "",
+    description: "",
     amount: "",
-    category: "",
-    date: new Date().toISOString().split("T")[0],
+    category: "Miscellaneous",
+    expense_date: new Date().toISOString().split("T")[0],
+    payment_method: "cash",
     notes: "",
   });
 
   const filtered = expenses.filter(
     (e) =>
-      e.title.toLowerCase().includes(search.toLowerCase()) ||
+      e.description.toLowerCase().includes(search.toLowerCase()) ||
       e.expense_number.toLowerCase().includes(search.toLowerCase()) ||
-      (e.category ?? "").toLowerCase().includes(search.toLowerCase())
+      e.category.toLowerCase().includes(search.toLowerCase())
   );
 
   const totalAmount = expenses.reduce((s, e) => s + e.amount, 0);
-  const pending = expenses.filter((e) => e.status === "pending");
-  const approved = expenses.filter((e) => e.status === "approved");
+  const pendingCount = expenses.filter((e) => e.status === "pending").length;
+  const approvedTotal = expenses
+    .filter((e) => e.status === "approved")
+    .reduce((s, e) => s + e.amount, 0);
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (!form.title.trim()) { toast.error("Title is required"); return; }
+    if (!form.description.trim()) { toast.error("Description is required"); return; }
     if (!form.amount || parseFloat(form.amount) <= 0) { toast.error("Enter a valid amount"); return; }
 
     setSubmitting(true);
@@ -98,10 +108,11 @@ export default function ExpensesClient({ initialExpenses, total }: Props) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          title: form.title.trim(),
+          description: form.description.trim(),
           amount: parseFloat(form.amount),
-          category: form.category || undefined,
-          date: form.date,
+          category: form.category,
+          expense_date: form.expense_date,
+          payment_method: form.payment_method,
           notes: form.notes || undefined,
         }),
       });
@@ -111,7 +122,7 @@ export default function ExpensesClient({ initialExpenses, total }: Props) {
       }
       toast.success("Expense submitted successfully");
       setSheetOpen(false);
-      setForm({ title: "", amount: "", category: "", date: new Date().toISOString().split("T")[0], notes: "" });
+      setForm({ description: "", amount: "", category: "Miscellaneous", expense_date: new Date().toISOString().split("T")[0], payment_method: "cash", notes: "" });
       startTransition(() => router.refresh());
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to submit expense");
@@ -165,19 +176,9 @@ export default function ExpensesClient({ initialExpenses, total }: Props) {
     }
   }
 
-  function handlePrint() {
-    window.print();
-  }
-
   return (
     <>
-      {/* Print styles */}
-      <style>{`
-        @media print {
-          .no-print { display: none !important; }
-          body { font-size: 12px; }
-        }
-      `}</style>
+      <style>{`@media print { .no-print { display: none !important; } }`}</style>
 
       <div className="space-y-6">
         {/* Header */}
@@ -187,7 +188,7 @@ export default function ExpensesClient({ initialExpenses, total }: Props) {
             <p className="text-slate-500 text-sm mt-0.5">{total} expense{total !== 1 ? "s" : ""} tracked</p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={handlePrint} className="gap-2 hidden sm:flex">
+            <Button variant="outline" size="sm" onClick={() => window.print()} className="gap-2 hidden sm:flex">
               <Download className="h-4 w-4" />Export
             </Button>
             <Button
@@ -199,12 +200,12 @@ export default function ExpensesClient({ initialExpenses, total }: Props) {
           </div>
         </div>
 
-        {/* KPI summary cards */}
+        {/* KPI cards */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 no-print">
           {[
-            { label: "Total Expenses", value: `KES ${KES(totalAmount)}`, icon: Receipt, gradient: "from-indigo-500 to-violet-600", bg: "bg-indigo-50", color: "text-indigo-600" },
-            { label: "Pending Approval", value: String(pending.length), icon: Clock, gradient: "from-amber-500 to-orange-500", bg: "bg-amber-50", color: "text-amber-600" },
-            { label: "Approved", value: `KES ${KES(approved.reduce((s, e) => s + e.amount, 0))}`, icon: CheckCircle2, gradient: "from-emerald-500 to-teal-600", bg: "bg-emerald-50", color: "text-emerald-600" },
+            { label: "Total Expenses",    value: `KES ${KES(totalAmount)}`,  icon: Receipt,      gradient: "from-indigo-500 to-violet-600", bg: "bg-indigo-50",  color: "text-indigo-600" },
+            { label: "Pending Approval",  value: String(pendingCount),        icon: Clock,        gradient: "from-amber-500 to-orange-500",  bg: "bg-amber-50",   color: "text-amber-600" },
+            { label: "Approved Total",    value: `KES ${KES(approvedTotal)}`, icon: CheckCircle2, gradient: "from-emerald-500 to-teal-600",  bg: "bg-emerald-50", color: "text-emerald-600" },
           ].map(({ label, value, icon: Icon, gradient, bg, color }) => (
             <Card key={label} className="relative overflow-hidden border-0 shadow-sm">
               <div className={`h-1 w-full bg-linear-to-r ${gradient}`} />
@@ -232,7 +233,7 @@ export default function ExpensesClient({ initialExpenses, total }: Props) {
           />
         </div>
 
-        {/* Expenses table */}
+        {/* Table */}
         <Card className="border-0 shadow-sm">
           <CardHeader className="pb-0">
             <CardTitle className="text-base font-bold text-slate-900">Expense Records</CardTitle>
@@ -255,9 +256,10 @@ export default function ExpensesClient({ initialExpenses, total }: Props) {
                   <thead>
                     <tr className="border-y bg-slate-50 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
                       <th className="px-4 py-2.5">Expense #</th>
-                      <th className="px-4 py-2.5">Title</th>
+                      <th className="px-4 py-2.5">Description</th>
                       <th className="px-4 py-2.5">Category</th>
                       <th className="px-4 py-2.5">Date</th>
+                      <th className="px-4 py-2.5">Method</th>
                       <th className="px-4 py-2.5 text-right">Amount</th>
                       <th className="px-4 py-2.5">Status</th>
                       <th className="px-4 py-2.5 no-print" />
@@ -271,11 +273,14 @@ export default function ExpensesClient({ initialExpenses, total }: Props) {
                         <tr key={exp.id} className="hover:bg-slate-50/50 transition-colors">
                           <td className="px-4 py-3 font-mono text-xs text-slate-500">{exp.expense_number}</td>
                           <td className="px-4 py-3">
-                            <p className="font-semibold text-slate-900">{exp.title}</p>
+                            <p className="font-semibold text-slate-900">{exp.description}</p>
                             {exp.notes && <p className="text-xs text-slate-400 truncate max-w-48">{exp.notes}</p>}
                           </td>
-                          <td className="px-4 py-3 text-slate-600">{exp.category ?? "—"}</td>
-                          <td className="px-4 py-3 text-slate-600">{new Date(exp.date).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" })}</td>
+                          <td className="px-4 py-3 text-slate-600">{exp.category}</td>
+                          <td className="px-4 py-3 text-slate-600">
+                            {new Date(exp.expense_date).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" })}
+                          </td>
+                          <td className="px-4 py-3 text-slate-500 capitalize">{exp.payment_method.replace("_", " ")}</td>
                           <td className="px-4 py-3 text-right font-bold text-slate-900">KES {KES(exp.amount)}</td>
                           <td className="px-4 py-3">
                             <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold border ${st.className}`}>
@@ -286,31 +291,19 @@ export default function ExpensesClient({ initialExpenses, total }: Props) {
                             <div className="flex items-center justify-end gap-1.5">
                               {exp.status === "pending" && (
                                 <>
-                                  <Button
-                                    size="sm" variant="ghost"
-                                    onClick={() => handleApprove(exp.id)}
-                                    className="h-7 px-2 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
-                                    disabled={isPending}
-                                  >
+                                  <Button size="sm" variant="ghost" onClick={() => handleApprove(exp.id)}
+                                    className="h-7 px-2 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50" disabled={isPending}>
                                     <CheckCircle2 className="h-3.5 w-3.5" />
                                   </Button>
-                                  <Button
-                                    size="sm" variant="ghost"
-                                    onClick={() => handleReject(exp.id)}
-                                    className="h-7 px-2 text-red-500 hover:text-red-600 hover:bg-red-50"
-                                    disabled={isPending}
-                                  >
+                                  <Button size="sm" variant="ghost" onClick={() => handleReject(exp.id)}
+                                    className="h-7 px-2 text-red-500 hover:text-red-600 hover:bg-red-50" disabled={isPending}>
                                     <XCircle className="h-3.5 w-3.5" />
                                   </Button>
                                 </>
                               )}
                               {exp.status !== "approved" && (
-                                <Button
-                                  size="sm" variant="ghost"
-                                  onClick={() => handleDelete(exp.id)}
-                                  className="h-7 px-2 text-slate-400 hover:text-red-500 hover:bg-red-50"
-                                  disabled={isPending}
-                                >
+                                <Button size="sm" variant="ghost" onClick={() => handleDelete(exp.id)}
+                                  className="h-7 px-2 text-slate-400 hover:text-red-500 hover:bg-red-50" disabled={isPending}>
                                   <Trash2 className="h-3.5 w-3.5" />
                                 </Button>
                               )}
@@ -335,11 +328,11 @@ export default function ExpensesClient({ initialExpenses, total }: Props) {
           </SheetHeader>
           <form onSubmit={handleSubmit} className="space-y-4 mt-6">
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Title *</Label>
+              <Label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Description *</Label>
               <Input
                 placeholder="e.g. Team lunch at Java House"
-                value={form.title}
-                onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+                value={form.description}
+                onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
                 className="h-10"
                 required
               />
@@ -349,22 +342,18 @@ export default function ExpensesClient({ initialExpenses, total }: Props) {
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Amount (KES) *</Label>
                 <Input
-                  type="number" min="0" step="0.01"
-                  placeholder="0.00"
+                  type="number" min="0" step="0.01" placeholder="0.00"
                   value={form.amount}
                   onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
-                  className="h-10"
-                  required
+                  className="h-10" required
                 />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Date *</Label>
                 <Input
-                  type="date"
-                  value={form.date}
-                  onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))}
-                  className="h-10"
-                  required
+                  type="date" value={form.expense_date}
+                  onChange={(e) => setForm((f) => ({ ...f, expense_date: e.target.value }))}
+                  className="h-10" required
                 />
               </div>
             </div>
@@ -372,13 +361,19 @@ export default function ExpensesClient({ initialExpenses, total }: Props) {
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Category</Label>
               <Select value={form.category} onValueChange={(v) => setForm((f) => ({ ...f, category: v }))}>
-                <SelectTrigger className="h-10">
-                  <SelectValue placeholder="Select category" />
-                </SelectTrigger>
+                <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {CATEGORIES.map((c) => (
-                    <SelectItem key={c} value={c}>{c}</SelectItem>
-                  ))}
+                  {CATEGORIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Payment Method</Label>
+              <Select value={form.payment_method} onValueChange={(v) => setForm((f) => ({ ...f, payment_method: v }))}>
+                <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {PAYMENT_METHODS.map((m) => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
@@ -386,8 +381,7 @@ export default function ExpensesClient({ initialExpenses, total }: Props) {
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Notes</Label>
               <textarea
-                rows={3}
-                placeholder="Additional details..."
+                rows={3} placeholder="Additional details..."
                 value={form.notes}
                 onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
                 className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 resize-none"
@@ -398,11 +392,8 @@ export default function ExpensesClient({ initialExpenses, total }: Props) {
               <Button type="button" variant="outline" className="flex-1" onClick={() => setSheetOpen(false)}>
                 Cancel
               </Button>
-              <Button
-                type="submit"
-                disabled={submitting}
-                className="flex-1 bg-linear-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 border-0 text-white font-semibold"
-              >
+              <Button type="submit" disabled={submitting}
+                className="flex-1 bg-linear-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 border-0 text-white font-semibold">
                 {submitting ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Submitting…</> : "Submit Expense"}
               </Button>
             </div>
