@@ -68,6 +68,11 @@ export async function PATCH(
     updated_at: new Date().toISOString(),
   };
 
+  // Set approved_by when approving
+  if (parsed.data.status === "approved") {
+    updatePayload.approved_by = session.user.id;
+  }
+
   const { data, error } = await supabase
     .from("purchase_orders")
     .update(updatePayload)
@@ -76,7 +81,10 @@ export async function PATCH(
     .select()
     .single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error("[purchase-orders PATCH]", error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
   return NextResponse.json({ data });
 }
 

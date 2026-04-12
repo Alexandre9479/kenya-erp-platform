@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import {
@@ -105,8 +106,18 @@ function SidebarContent({ collapsed, onToggleCollapse }: { collapsed: boolean; o
       )}>
         {!collapsed && (
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-linear-to-br from-indigo-500 to-violet-600 shadow-lg shadow-indigo-500/40">
-              <Building2 className="h-4 w-4 text-white" />
+            <div className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-xl overflow-hidden bg-linear-to-br from-indigo-500 to-violet-600 shadow-lg shadow-indigo-500/40">
+              {session?.user?.tenantLogo ? (
+                <Image
+                  src={session.user.tenantLogo}
+                  alt="Company logo"
+                  fill
+                  sizes="32px"
+                  className="object-cover"
+                />
+              ) : (
+                <Building2 className="h-4 w-4 text-white" />
+              )}
             </div>
             <div className="min-w-0">
               <p className="truncate text-sm font-bold leading-tight text-white">
@@ -119,8 +130,18 @@ function SidebarContent({ collapsed, onToggleCollapse }: { collapsed: boolean; o
           </div>
         )}
         {collapsed && (
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-linear-to-br from-indigo-500 to-violet-600 shadow-lg shadow-indigo-500/40">
-            <Building2 className="h-4 w-4 text-white" />
+          <div className="relative flex h-9 w-9 items-center justify-center rounded-xl overflow-hidden bg-linear-to-br from-indigo-500 to-violet-600 shadow-lg shadow-indigo-500/40">
+            {session?.user?.tenantLogo ? (
+              <Image
+                src={session.user.tenantLogo}
+                alt="Company logo"
+                fill
+                sizes="36px"
+                className="object-cover"
+              />
+            ) : (
+              <Building2 className="h-4 w-4 text-white" />
+            )}
           </div>
         )}
         {onToggleCollapse && !collapsed && (

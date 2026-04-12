@@ -2,12 +2,18 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { Plus, Search, FileText, MoreHorizontal } from "lucide-react";
+import {
+  Plus,
+  Search,
+  FileText,
+  MoreHorizontal,
+  TrendingUp,
+  Clock,
+  AlertCircle,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
@@ -115,157 +121,244 @@ export function InvoicesClient({ initialInvoices, totalCount }: Props) {
   const from = (page - 1) * limit + 1;
   const to = Math.min(page * limit, count);
 
+  // Derived KPI values
+  const paidCount = invoices.filter((i) => i.status === "paid").length;
+  const overdueCount = invoices.filter((i) => i.status === "overdue").length;
+
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-1 gap-3">
-          <div className="relative flex-1 max-w-xs">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            <Input
-              placeholder="Search invoice number…"
-              value={search}
-              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-              className="pl-9"
-            />
+    <div className="space-y-6">
+      {/* ── Module Hero Strip ────────────────────────────────────────────── */}
+      <div className="rounded-2xl overflow-hidden shadow-sm border border-emerald-100">
+        <div className="relative h-24 bg-linear-to-r from-emerald-500 to-teal-600 px-6 flex items-center justify-between overflow-hidden">
+          <div className="absolute -top-6 -right-6 w-32 h-32 rounded-full bg-white/10" />
+          <div className="absolute top-4 right-16 w-16 h-16 rounded-full bg-white/5" />
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+              <FileText className="h-6 w-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-white">Sales &amp; Invoices</h1>
+              <p className="text-sm text-white/70">Track invoices, payments and outstanding balances</p>
+            </div>
           </div>
-          <Select value={status} onValueChange={(v) => { setStatus(v); setPage(1); }}>
-            <SelectTrigger className="w-36">
-              <SelectValue placeholder="All status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All</SelectItem>
-              {Object.entries(statusConfig).map(([k, v]) => (
-                <SelectItem key={k} value={k}>{v.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Button
+            asChild
+            className="bg-white text-emerald-700 hover:bg-emerald-50 font-semibold shadow-sm shrink-0"
+          >
+            <Link href="/sales/new">
+              <Plus className="h-4 w-4 mr-1.5" />
+              New Invoice
+            </Link>
+          </Button>
         </div>
-        <Button asChild>
-          <Link href="/sales/new">
-            <Plus className="mr-2 h-4 w-4" />
-            New Invoice
-          </Link>
-        </Button>
+        <div className="bg-white px-6 py-3 flex flex-wrap gap-4 border-t border-emerald-100">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-emerald-500" />
+            <span className="text-sm text-slate-600 font-medium">{count} Total Invoices</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-teal-400" />
+            <span className="text-sm text-slate-600 font-medium">{paidCount} Paid</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-red-400" />
+            <span className="text-sm text-slate-600 font-medium">{overdueCount} Overdue</span>
+          </div>
+        </div>
       </div>
 
-      <Card>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Invoice #</TableHead>
-                <TableHead>Customer</TableHead>
-                <TableHead>Issue Date</TableHead>
-                <TableHead>Due Date</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Amount</TableHead>
-                <TableHead className="text-right">Paid</TableHead>
-                <TableHead className="text-right">Balance</TableHead>
-                <TableHead className="w-10" />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                Array.from({ length: 5 }).map((_, i) => (
-                  <TableRow key={i}>
-                    {Array.from({ length: 9 }).map((_, j) => (
-                      <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
-                    ))}
-                  </TableRow>
-                ))
-              ) : invoices.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={9} className="py-12 text-center">
-                    <FileText className="mx-auto mb-2 h-8 w-8 text-slate-300" />
-                    <p className="text-sm text-slate-400">No invoices found</p>
-                    <Button variant="outline" size="sm" className="mt-3" asChild>
-                      <Link href="/sales/new">Create your first invoice</Link>
-                    </Button>
-                  </TableCell>
+      {/* ── KPI Cards ────────────────────────────────────────────────────── */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="rounded-xl bg-white border border-slate-200 shadow-sm overflow-hidden">
+          <div className="h-1 bg-linear-to-r from-emerald-500 to-teal-600" />
+          <div className="p-4 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center shrink-0">
+              <FileText className="h-5 w-5 text-emerald-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-slate-900">{count}</p>
+              <p className="text-xs text-slate-500 font-medium">Total Invoices</p>
+            </div>
+          </div>
+        </div>
+        <div className="rounded-xl bg-white border border-slate-200 shadow-sm overflow-hidden">
+          <div className="h-1 bg-linear-to-r from-emerald-500 to-teal-600" />
+          <div className="p-4 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-teal-100 flex items-center justify-center shrink-0">
+              <TrendingUp className="h-5 w-5 text-teal-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-slate-900">{paidCount}</p>
+              <p className="text-xs text-slate-500 font-medium">Paid Invoices</p>
+            </div>
+          </div>
+        </div>
+        <div className="rounded-xl bg-white border border-slate-200 shadow-sm overflow-hidden">
+          <div className="h-1 bg-linear-to-r from-emerald-500 to-teal-600" />
+          <div className="p-4 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center shrink-0">
+              <AlertCircle className="h-5 w-5 text-red-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-slate-900">{overdueCount}</p>
+              <p className="text-xs text-slate-500 font-medium">Overdue</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Search / Filter Bar ───────────────────────────────────────────── */}
+      <div className="bg-white rounded-xl border border-slate-200 p-3 flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1 max-w-xs">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <Input
+            placeholder="Search invoice number…"
+            value={search}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+            className="pl-9 focus-visible:ring-emerald-500"
+          />
+        </div>
+        <Select value={status} onValueChange={(v) => { setStatus(v); setPage(1); }}>
+          <SelectTrigger className="w-36">
+            <SelectValue placeholder="All status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All</SelectItem>
+            {Object.entries(statusConfig).map(([k, v]) => (
+              <SelectItem key={k} value={k}>{v.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* ── Table ────────────────────────────────────────────────────────── */}
+      <div className="rounded-xl border border-slate-200 overflow-hidden bg-white shadow-sm">
+        <Table>
+          <TableHeader>
+            <TableRow className="bg-slate-50 border-y border-slate-200">
+              <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Invoice #</TableHead>
+              <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Customer</TableHead>
+              <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Issue Date</TableHead>
+              <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Due Date</TableHead>
+              <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</TableHead>
+              <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Amount</TableHead>
+              <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Paid</TableHead>
+              <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Balance</TableHead>
+              <TableHead className="w-10" />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isLoading ? (
+              Array.from({ length: 5 }).map((_, i) => (
+                <TableRow key={i}>
+                  {Array.from({ length: 9 }).map((_, j) => (
+                    <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
+                  ))}
                 </TableRow>
-              ) : (
-                invoices.map((inv) => {
-                  const cfg = statusConfig[inv.status] ?? statusConfig.draft;
-                  const balance = inv.total_amount - inv.amount_paid;
-                  const isOverdue = inv.status === "overdue" || (inv.status === "sent" && new Date(inv.due_date) < new Date());
-                  return (
-                    <TableRow key={inv.id}>
-                      <TableCell>
-                        <Link href={`/sales/${inv.id}`} className="font-medium text-blue-600 hover:underline">
-                          {inv.invoice_number}
-                        </Link>
-                      </TableCell>
-                      <TableCell>{inv.customer_name}</TableCell>
-                      <TableCell className="text-slate-500">{dateStr(inv.issue_date)}</TableCell>
-                      <TableCell className={isOverdue ? "text-red-500 font-medium" : "text-slate-500"}>
-                        {dateStr(inv.due_date)}
-                      </TableCell>
-                      <TableCell>
-                        <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${cfg.className}`}>
-                          {cfg.label}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-right font-medium">KES {KES(inv.total_amount)}</TableCell>
-                      <TableCell className="text-right text-slate-500">KES {KES(inv.amount_paid)}</TableCell>
-                      <TableCell className={`text-right font-medium ${balance > 0 ? "text-red-600" : "text-emerald-600"}`}>
-                        KES {KES(balance)}
-                      </TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem asChild>
-                              <Link href={`/sales/${inv.id}`}>View</Link>
+              ))
+            ) : invoices.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={9} className="py-16 text-center">
+                  <div className="flex flex-col items-center">
+                    <div className="w-16 h-16 rounded-2xl bg-linear-to-br from-emerald-500 to-teal-600 flex items-center justify-center mb-4 shadow-lg shadow-emerald-500/30">
+                      <FileText className="h-8 w-8 text-white" />
+                    </div>
+                    <p className="font-bold text-slate-800 text-base">No invoices found</p>
+                    <p className="text-sm text-slate-500 mt-1">Create your first invoice to get started</p>
+                    <Button
+                      asChild
+                      className="mt-4 bg-linear-to-r from-emerald-500 to-teal-600 text-white hover:from-emerald-600 hover:to-teal-700"
+                    >
+                      <Link href="/sales/new">
+                        <Plus className="h-4 w-4 mr-1.5" />
+                        New Invoice
+                      </Link>
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : (
+              invoices.map((inv) => {
+                const cfg = statusConfig[inv.status] ?? statusConfig.draft;
+                const balance = inv.total_amount - inv.amount_paid;
+                const isOverdue = inv.status === "overdue" || (inv.status === "sent" && new Date(inv.due_date) < new Date());
+                return (
+                  <TableRow key={inv.id} className="hover:bg-emerald-50/20 transition-colors border-b border-slate-100">
+                    <TableCell>
+                      <Link href={`/sales/${inv.id}`} className="font-medium text-emerald-600 hover:underline">
+                        {inv.invoice_number}
+                      </Link>
+                    </TableCell>
+                    <TableCell className="text-slate-700">{inv.customer_name}</TableCell>
+                    <TableCell className="text-slate-500">{dateStr(inv.issue_date)}</TableCell>
+                    <TableCell className={isOverdue ? "text-red-500 font-medium" : "text-slate-500"}>
+                      {dateStr(inv.due_date)}
+                    </TableCell>
+                    <TableCell>
+                      <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${cfg.className}`}>
+                        {cfg.label}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-right font-medium text-slate-800">KES {KES(inv.total_amount)}</TableCell>
+                    <TableCell className="text-right text-slate-500">KES {KES(inv.amount_paid)}</TableCell>
+                    <TableCell className={`text-right font-medium ${balance > 0 ? "text-red-600" : "text-emerald-600"}`}>
+                      KES {KES(balance)}
+                    </TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem asChild>
+                            <Link href={`/sales/${inv.id}`}>View</Link>
+                          </DropdownMenuItem>
+                          {inv.status === "draft" && (
+                            <DropdownMenuItem onClick={() => markStatus(inv.id, "sent")}>
+                              Mark as Sent
                             </DropdownMenuItem>
-                            {inv.status === "draft" && (
-                              <DropdownMenuItem onClick={() => markStatus(inv.id, "sent")}>
-                                Mark as Sent
-                              </DropdownMenuItem>
-                            )}
-                            {(inv.status === "sent" || inv.status === "partial") && (
-                              <DropdownMenuItem onClick={() => markStatus(inv.id, "paid")}>
-                                Mark as Paid
-                              </DropdownMenuItem>
-                            )}
-                            <DropdownMenuSeparator />
-                            {inv.status === "draft" && (
-                              <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                  <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-red-600">
+                          )}
+                          {(inv.status === "sent" || inv.status === "partial") && (
+                            <DropdownMenuItem onClick={() => markStatus(inv.id, "paid")}>
+                              Mark as Paid
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuSeparator />
+                          {inv.status === "draft" && (
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-red-600">
+                                  Delete
+                                </DropdownMenuItem>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Delete Invoice?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    This will permanently delete {inv.invoice_number}. This action cannot be undone.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => deleteInvoice(inv.id)} className="bg-red-600 hover:bg-red-700">
                                     Delete
-                                  </DropdownMenuItem>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                  <AlertDialogHeader>
-                                    <AlertDialogTitle>Delete Invoice?</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                      This will permanently delete {inv.invoice_number}. This action cannot be undone.
-                                    </AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                    <AlertDialogAction onClick={() => deleteInvoice(inv.id)} className="bg-red-600 hover:bg-red-700">
-                                      Delete
-                                    </AlertDialogAction>
-                                  </AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                );
+              })
+            )}
+          </TableBody>
+        </Table>
+      </div>
 
       {count > limit && (
         <div className="flex items-center justify-between text-sm text-slate-500">

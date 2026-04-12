@@ -6,13 +6,13 @@ import { useForm, useFieldArray, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { Plus, Trash2, Loader2, ArrowLeft } from "lucide-react";
+import { Plus, Trash2, Loader2, ArrowLeft, ClipboardList, Truck, CalendarDays, StickyNote, Receipt } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 
@@ -112,26 +112,45 @@ export function LPOBuilder() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
+      {/* Page header */}
       <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" asChild>
+        <Button variant="ghost" size="icon" asChild className="text-slate-500 hover:text-slate-700">
           <Link href="/purchasing"><ArrowLeft className="h-4 w-4" /></Link>
         </Button>
-        <h2 className="text-lg font-semibold text-slate-900">New Local Purchase Order</h2>
+        <div className="flex items-center gap-2.5">
+          <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-linear-to-br from-amber-500 to-orange-600 shadow-md shadow-amber-500/25">
+            <ClipboardList className="h-4 w-4 text-white" />
+          </div>
+          <div>
+            <h2 className="text-lg font-semibold text-slate-900 leading-tight">New Local Purchase Order</h2>
+            <p className="text-xs text-slate-500 leading-tight">Fill in the details below and add line items</p>
+          </div>
+        </div>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <Card>
-            <CardHeader><CardTitle className="text-base">Supplier & Dates</CardTitle></CardHeader>
-            <CardContent className="space-y-4">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+        {/* Top cards */}
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+          {/* Supplier & Dates */}
+          <Card className="overflow-hidden border-0 shadow-sm ring-1 ring-slate-200">
+            <CardHeader className="p-0">
+              <div className="h-1 w-full bg-linear-to-r from-amber-500 to-orange-600" />
+              <div className="flex items-center gap-2.5 px-5 py-3.5 border-b border-slate-100">
+                <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-amber-50">
+                  <Truck className="h-3.5 w-3.5 text-amber-600" />
+                </div>
+                <h3 className="text-sm font-semibold text-slate-800">Supplier &amp; Dates</h3>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4 p-5">
               <div className="space-y-1.5">
-                <Label>Supplier *</Label>
+                <Label className="text-slate-700">Supplier <span className="text-red-500">*</span></Label>
                 <Controller
                   control={control}
                   name="supplier_id"
                   render={({ field }) => (
                     <Select value={field.value} onValueChange={field.onChange}>
-                      <SelectTrigger className={errors.supplier_id ? "border-destructive" : ""}>
+                      <SelectTrigger className={errors.supplier_id ? "border-red-400" : "border-slate-200 focus:ring-amber-500/20 focus:border-amber-400"}>
                         <SelectValue placeholder="Select supplier…" />
                       </SelectTrigger>
                       <SelectContent>
@@ -142,91 +161,121 @@ export function LPOBuilder() {
                     </Select>
                   )}
                 />
-                {errors.supplier_id && <p className="text-xs text-destructive">{errors.supplier_id.message}</p>}
+                {errors.supplier_id && <p className="text-xs text-red-500">{errors.supplier_id.message}</p>}
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <Label>Issue Date *</Label>
-                  <Input type="date" {...register("issue_date")} />
+                  <Label className="text-slate-700">Issue Date <span className="text-red-500">*</span></Label>
+                  <Input type="date" {...register("issue_date")} className={errors.issue_date ? "border-red-400" : "border-slate-200"} />
                 </div>
                 <div className="space-y-1.5">
-                  <Label>Expected Date</Label>
-                  <Input type="date" {...register("expected_date")} />
+                  <Label className="text-slate-700">Expected Date</Label>
+                  <Input type="date" {...register("expected_date")} className="border-slate-200" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader><CardTitle className="text-base">Notes & Terms</CardTitle></CardHeader>
-            <CardContent className="space-y-4">
+          {/* Notes & Terms */}
+          <Card className="overflow-hidden border-0 shadow-sm ring-1 ring-slate-200">
+            <CardHeader className="p-0">
+              <div className="h-1 w-full bg-linear-to-r from-amber-500 to-orange-600" />
+              <div className="flex items-center gap-2.5 px-5 py-3.5 border-b border-slate-100">
+                <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-amber-50">
+                  <StickyNote className="h-3.5 w-3.5 text-amber-600" />
+                </div>
+                <h3 className="text-sm font-semibold text-slate-800">Notes &amp; Terms</h3>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4 p-5">
               <div className="space-y-1.5">
-                <Label>Notes</Label>
-                <Textarea placeholder="Delivery instructions…" rows={2} {...register("notes")} />
+                <Label className="text-slate-700">Notes</Label>
+                <Textarea placeholder="Delivery instructions…" rows={2} {...register("notes")} className="border-slate-200 resize-none" />
               </div>
               <div className="space-y-1.5">
-                <Label>Terms & Conditions</Label>
-                <Textarea placeholder="Payment terms…" rows={2} {...register("terms")} />
+                <Label className="text-slate-700">Terms &amp; Conditions</Label>
+                <Textarea placeholder="Payment terms…" rows={2} {...register("terms")} className="border-slate-200 resize-none" />
               </div>
             </CardContent>
           </Card>
         </div>
 
         {/* Line Items */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-base">Line Items</CardTitle>
-            <Button type="button" variant="outline" size="sm" onClick={() => append({ description: "", quantity: 1, unit_price: 0, vat_rate: 16 })}>
-              <Plus className="mr-1 h-3.5 w-3.5" /> Add Line
-            </Button>
+        <Card className="overflow-hidden border-0 shadow-sm ring-1 ring-slate-200">
+          <CardHeader className="p-0">
+            <div className="h-1 w-full bg-linear-to-r from-amber-500 to-orange-600" />
+            <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-amber-50">
+                  <CalendarDays className="h-3.5 w-3.5 text-amber-600" />
+                </div>
+                <h3 className="text-sm font-semibold text-slate-800">Line Items</h3>
+                <span className="text-xs text-slate-400">({fields.length} {fields.length === 1 ? "item" : "items"})</span>
+              </div>
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => append({ description: "", quantity: 1, unit_price: 0, vat_rate: 16 })}
+                className="h-8 bg-amber-600 hover:bg-amber-700 text-white text-xs shadow-sm"
+              >
+                <Plus className="mr-1.5 h-3.5 w-3.5" />
+                Add Line
+              </Button>
+            </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-0">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b text-left text-xs font-medium text-slate-500">
-                    <th className="pb-2 pr-3 w-44">Product</th>
-                    <th className="pb-2 pr-3">Description *</th>
-                    <th className="pb-2 pr-3 w-20">Qty *</th>
-                    <th className="pb-2 pr-3 w-28">Unit Price *</th>
-                    <th className="pb-2 pr-3 w-24">VAT %</th>
-                    <th className="pb-2 pr-3 w-28 text-right">Total</th>
-                    <th className="pb-2 w-8" />
+                  <tr className="bg-slate-50 border-b border-slate-100">
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 w-44">Product</th>
+                    <th className="px-2 py-3 text-left text-xs font-semibold text-slate-500">Description</th>
+                    <th className="px-2 py-3 text-left text-xs font-semibold text-slate-500 w-20">Qty</th>
+                    <th className="px-2 py-3 text-left text-xs font-semibold text-slate-500 w-28">Unit Price</th>
+                    <th className="px-2 py-3 text-left text-xs font-semibold text-slate-500 w-24">VAT %</th>
+                    <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 w-28">Total</th>
+                    <th className="px-2 py-3 w-8" />
                   </tr>
                 </thead>
-                <tbody className="divide-y">
+                <tbody className="divide-y divide-slate-100">
                   {fields.map((field, index) => {
                     const qty = watchedItems[index]?.quantity || 0;
                     const price = watchedItems[index]?.unit_price || 0;
                     const vat = watchedItems[index]?.vat_rate || 0;
                     const lineTotal = qty * price * (1 + vat / 100);
                     return (
-                      <tr key={field.id}>
-                        <td className="py-2 pr-3">
+                      <tr key={field.id} className="hover:bg-amber-50/30 transition-colors">
+                        <td className="px-4 py-2.5">
                           <Select onValueChange={(v) => selectProduct(index, v)}>
-                            <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select…" /></SelectTrigger>
+                            <SelectTrigger className="h-8 text-xs border-slate-200">
+                              <SelectValue placeholder="Select…" />
+                            </SelectTrigger>
                             <SelectContent>
                               {products.map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
                             </SelectContent>
                           </Select>
                         </td>
-                        <td className="py-2 pr-3">
-                          <Input className="h-8 text-sm" placeholder="Description" {...register(`items.${index}.description`)} />
+                        <td className="px-2 py-2.5">
+                          <Input
+                            className={`h-8 text-sm border-slate-200 ${errors.items?.[index]?.description ? "border-red-400" : ""}`}
+                            placeholder="Description"
+                            {...register(`items.${index}.description`)}
+                          />
                         </td>
-                        <td className="py-2 pr-3">
+                        <td className="px-2 py-2.5">
                           <Controller control={control} name={`items.${index}.quantity`} render={({ field }) => (
-                            <Input className="h-8 text-sm" type="number" step="0.01" min="0" value={field.value} onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)} />
+                            <Input className="h-8 text-sm border-slate-200" type="number" step="0.01" min="0" value={field.value} onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)} />
                           )} />
                         </td>
-                        <td className="py-2 pr-3">
+                        <td className="px-2 py-2.5">
                           <Controller control={control} name={`items.${index}.unit_price`} render={({ field }) => (
-                            <Input className="h-8 text-sm" type="number" step="0.01" min="0" value={field.value} onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)} />
+                            <Input className="h-8 text-sm border-slate-200" type="number" step="0.01" min="0" value={field.value} onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)} />
                           )} />
                         </td>
-                        <td className="py-2 pr-3">
+                        <td className="px-2 py-2.5">
                           <Controller control={control} name={`items.${index}.vat_rate`} render={({ field }) => (
                             <Select value={String(field.value)} onValueChange={(v) => field.onChange(parseFloat(v))}>
-                              <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                              <SelectTrigger className="h-8 text-xs border-slate-200"><SelectValue /></SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="0">0%</SelectItem>
                                 <SelectItem value="8">8%</SelectItem>
@@ -235,9 +284,16 @@ export function LPOBuilder() {
                             </Select>
                           )} />
                         </td>
-                        <td className="py-2 pr-3 text-right font-medium">KES {KES(lineTotal)}</td>
-                        <td className="py-2">
-                          <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-red-500" disabled={fields.length === 1} onClick={() => remove(index)}>
+                        <td className="px-4 py-2.5 text-right font-semibold text-slate-800">KES {KES(lineTotal)}</td>
+                        <td className="px-2 py-2.5">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-slate-400 hover:text-red-500 hover:bg-red-50"
+                            disabled={fields.length === 1}
+                            onClick={() => remove(index)}
+                          >
                             <Trash2 className="h-3.5 w-3.5" />
                           </Button>
                         </td>
@@ -252,28 +308,35 @@ export function LPOBuilder() {
 
         {/* Totals */}
         <div className="flex justify-end">
-          <Card className="w-full lg:w-72">
-            <CardContent className="pt-4 space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-slate-500">Subtotal</span>
-                <span>KES {KES(subtotal)}</span>
+          <Card className="w-full lg:w-80 overflow-hidden border-0 shadow-sm ring-1 ring-slate-200">
+            <div className="h-1 w-full bg-linear-to-r from-amber-500 to-orange-600" />
+            <div className="flex items-center gap-2.5 px-5 py-3 border-b border-slate-100">
+              <div className="flex items-center justify-center w-6 h-6 rounded-md bg-amber-50">
+                <Receipt className="h-3 w-3 text-amber-600" />
               </div>
-              <div className="flex justify-between">
-                <span className="text-slate-500">VAT</span>
-                <span>KES {KES(taxAmount)}</span>
+              <h3 className="text-xs font-semibold text-slate-700 uppercase tracking-wider">Order Summary</h3>
+            </div>
+            <CardContent className="px-5 py-4 space-y-2.5 text-sm">
+              <div className="flex justify-between text-slate-600">
+                <span>Subtotal</span>
+                <span className="font-medium">KES {KES(subtotal)}</span>
               </div>
-              <Separator />
-              <div className="flex justify-between font-bold text-base">
+              <div className="flex justify-between text-slate-600">
+                <span>VAT</span>
+                <span className="font-medium">KES {KES(taxAmount)}</span>
+              </div>
+              <Separator className="my-1" />
+              <div className="flex justify-between font-bold text-base text-slate-900">
                 <span>Total</span>
-                <span>KES {KES(total)}</span>
+                <span className="text-amber-700">KES {KES(total)}</span>
               </div>
             </CardContent>
           </Card>
         </div>
 
         {/* Actions */}
-        <div className="flex gap-3 justify-end">
-          <Button type="button" variant="outline" asChild>
+        <div className="flex gap-3 justify-end pb-4">
+          <Button type="button" variant="outline" asChild className="border-slate-200 text-slate-600 hover:bg-slate-50">
             <Link href="/purchasing">Cancel</Link>
           </Button>
           <Controller
@@ -281,13 +344,24 @@ export function LPOBuilder() {
             name="status"
             render={({ field }) => (
               <>
-                <Button type="submit" variant="outline" disabled={isSubmitting} onClick={() => field.onChange("draft")}>
+                <Button
+                  type="submit"
+                  variant="outline"
+                  disabled={isSubmitting}
+                  onClick={() => field.onChange("draft")}
+                  className="border-amber-200 text-amber-700 hover:bg-amber-50"
+                >
                   {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                   Save as Draft
                 </Button>
-                <Button type="submit" disabled={isSubmitting} onClick={() => field.onChange("sent")}>
+                <Button
+                  type="submit"
+                  disabled={isSubmitting}
+                  onClick={() => field.onChange("sent")}
+                  className="bg-amber-600 hover:bg-amber-700 text-white shadow-sm"
+                >
                   {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                  Create & Send
+                  Create &amp; Send
                 </Button>
               </>
             )}
