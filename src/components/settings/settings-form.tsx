@@ -1,62 +1,35 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { Loader2, Building2, FileText, Landmark, Globe } from "lucide-react";
+import {
+  Loader2, Building2, FileText, Landmark, Globe,
+  Camera, CheckCircle2, AlertTriangle, CreditCard,
+  Upload, Save, Settings2, Palette,
+} from "lucide-react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-
-// ─── Local TenantRow type (matches DB schema) ─────────────────────────────────
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
 
 export type TenantRow = {
-  id: string;
-  name: string;
-  slug: string;
-  email: string;
-  phone: string | null;
-  address: string | null;
-  city: string | null;
-  country: string;
-  kra_pin: string | null;
-  logo_url: string | null;
-  primary_color: string;
-  currency: string;
-  timezone: string;
-  subscription_plan: string;
-  subscription_status: string;
-  trial_ends_at: string | null;
-  is_active: boolean;
-  bank_name: string | null;
-  bank_account: string | null;
-  bank_branch: string | null;
-  invoice_prefix: string;
-  quote_prefix: string;
-  lpo_prefix: string;
-  terms_and_conditions: string | null;
-  created_at: string;
-  updated_at: string;
+  id: string; name: string; slug: string; email: string;
+  phone: string | null; address: string | null; city: string | null;
+  country: string; kra_pin: string | null; logo_url: string | null;
+  primary_color: string; currency: string; timezone: string;
+  subscription_plan: string; subscription_status: string;
+  trial_ends_at: string | null; is_active: boolean;
+  bank_name: string | null; bank_account: string | null; bank_branch: string | null;
+  invoice_prefix: string; quote_prefix: string; lpo_prefix: string;
+  terms_and_conditions: string | null; created_at: string; updated_at: string;
 };
-
-// ─── Schema ───────────────────────────────────────────────────────────────────
 
 const settingsSchema = z.object({
   name: z.string().min(2, "Company name must be at least 2 characters"),
@@ -66,89 +39,122 @@ const settingsSchema = z.object({
   city: z.string().optional().nullable(),
   country: z.string().min(1, "Country is required"),
   kra_pin: z.string().optional().nullable(),
-  invoice_prefix: z
-    .string()
-    .min(1, "Invoice prefix is required")
-    .max(10, "Max 10 characters"),
-  quote_prefix: z
-    .string()
-    .min(1, "Quote prefix is required")
-    .max(10, "Max 10 characters"),
-  lpo_prefix: z
-    .string()
-    .min(1, "LPO prefix is required")
-    .max(10, "Max 10 characters"),
+  invoice_prefix: z.string().min(1).max(10),
+  quote_prefix: z.string().min(1).max(10),
+  lpo_prefix: z.string().min(1).max(10),
   terms_and_conditions: z.string().optional().nullable(),
   bank_name: z.string().optional().nullable(),
   bank_account: z.string().optional().nullable(),
   bank_branch: z.string().optional().nullable(),
-  currency: z.string().min(1, "Currency is required"),
-  timezone: z.string().min(1, "Timezone is required"),
+  currency: z.string().min(1),
+  timezone: z.string().min(1),
 });
-
 type SettingsFormValues = z.infer<typeof settingsSchema>;
 
-// ─── Props ────────────────────────────────────────────────────────────────────
-
-interface SettingsFormProps {
-  tenant: TenantRow;
+function getInitials(name: string) {
+  return name.split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase();
 }
 
-// ─── Field helper ─────────────────────────────────────────────────────────────
+function trialDaysLeft(endsAt: string | null) {
+  if (!endsAt) return null;
+  const diff = Math.ceil((new Date(endsAt).getTime() - Date.now()) / 86_400_000);
+  return diff > 0 ? diff : 0;
+}
 
-function Field({
-  label,
-  error,
-  children,
+function SectionCard({
+  icon: Icon, title, description, gradient, children,
 }: {
-  label: string;
-  error?: string;
-  children: React.ReactNode;
+  icon: React.ElementType; title: string; description: string;
+  gradient: string; children: React.ReactNode;
 }) {
   return (
+    <Card className="border-0 shadow-sm overflow-hidden">
+      <div className={`h-1 w-full bg-linear-to-r ${gradient}`} />
+      <CardHeader className="pb-3">
+        <div className="flex items-center gap-3">
+          <div className={`w-10 h-10 rounded-xl flex items-center justify-center bg-linear-to-br ${gradient} shadow-sm`}>
+            <Icon className="h-5 w-5 text-white" />
+          </div>
+          <div>
+            <CardTitle className="text-base font-bold text-slate-900">{title}</CardTitle>
+            <CardDescription className="text-xs text-slate-400 mt-0.5">{description}</CardDescription>
+          </div>
+        </div>
+      </CardHeader>
+      <Separator className="mx-6 mb-0 opacity-60" />
+      <CardContent className="pt-5">{children}</CardContent>
+    </Card>
+  );
+}
+
+function Field({ label, error, hint, children }: { label: string; error?: string; hint?: string; children: React.ReactNode }) {
+  return (
     <div className="space-y-1.5">
-      <Label>{label}</Label>
+      <Label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">{label}</Label>
       {children}
-      {error && <p className="text-xs text-destructive">{error}</p>}
+      {hint && !error && <p className="text-xs text-slate-400">{hint}</p>}
+      {error && <p className="text-xs text-red-500 flex items-center gap-1"><AlertTriangle className="h-3 w-3" />{error}</p>}
     </div>
   );
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
-
-export function SettingsForm({ tenant }: SettingsFormProps) {
+export function SettingsForm({ tenant }: { tenant: TenantRow }) {
   const [isSaving, setIsSaving] = useState(false);
+  const [logoUrl, setLogoUrl] = useState<string | null>(tenant.logo_url);
+  const [logoUploading, setLogoUploading] = useState(false);
+  const [logoPreview, setLogoPreview] = useState<string | null>(tenant.logo_url);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const daysLeft = trialDaysLeft(tenant.trial_ends_at);
+  const isTrialing = tenant.subscription_status === "trial";
 
   const {
-    register,
-    handleSubmit,
-    setValue,
-    watch,
-    formState: { errors },
+    register, handleSubmit, setValue, watch,
+    formState: { errors, isDirty },
   } = useForm<SettingsFormValues>({
     resolver: zodResolver(settingsSchema),
     defaultValues: {
-      name: tenant.name,
-      email: tenant.email,
-      phone: tenant.phone ?? "",
-      address: tenant.address ?? "",
-      city: tenant.city ?? "",
-      country: tenant.country,
+      name: tenant.name, email: tenant.email,
+      phone: tenant.phone ?? "", address: tenant.address ?? "",
+      city: tenant.city ?? "", country: tenant.country,
       kra_pin: tenant.kra_pin ?? "",
-      invoice_prefix: tenant.invoice_prefix,
-      quote_prefix: tenant.quote_prefix,
-      lpo_prefix: tenant.lpo_prefix,
+      invoice_prefix: tenant.invoice_prefix, quote_prefix: tenant.quote_prefix, lpo_prefix: tenant.lpo_prefix,
       terms_and_conditions: tenant.terms_and_conditions ?? "",
-      bank_name: tenant.bank_name ?? "",
-      bank_account: tenant.bank_account ?? "",
-      bank_branch: tenant.bank_branch ?? "",
-      currency: tenant.currency,
-      timezone: tenant.timezone,
+      bank_name: tenant.bank_name ?? "", bank_account: tenant.bank_account ?? "", bank_branch: tenant.bank_branch ?? "",
+      currency: tenant.currency, timezone: tenant.timezone,
     },
   });
 
   const currency = watch("currency");
   const timezone = watch("timezone");
+
+  async function handleLogoChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) { toast.error("Please select an image file"); return; }
+    if (file.size > 2 * 1024 * 1024) { toast.error("Image must be under 2MB"); return; }
+
+    // Instant preview
+    const reader = new FileReader();
+    reader.onload = (ev) => setLogoPreview(ev.target?.result as string);
+    reader.readAsDataURL(file);
+
+    setLogoUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("logo", file);
+      const res = await fetch("/api/settings/logo", { method: "POST", body: fd });
+      const json = await res.json() as { logo_url?: string; error?: string };
+      if (!res.ok) throw new Error(json.error ?? "Upload failed");
+      setLogoUrl(json.logo_url!);
+      toast.success("Logo uploaded successfully");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to upload logo");
+      setLogoPreview(logoUrl);
+    } finally {
+      setLogoUploading(false);
+    }
+  }
 
   const onSubmit = async (values: SettingsFormValues) => {
     setIsSaving(true);
@@ -159,11 +165,8 @@ export function SettingsForm({ tenant }: SettingsFormProps) {
         body: JSON.stringify(values),
       });
       const json = await res.json() as { error?: string };
-      if (!res.ok) {
-        toast.error(json.error ?? "Failed to save settings.");
-        return;
-      }
-      toast.success("Settings saved successfully.");
+      if (!res.ok) { toast.error(json.error ?? "Failed to save settings."); return; }
+      toast.success("Settings saved successfully");
     } catch {
       toast.error("Something went wrong. Please try again.");
     } finally {
@@ -173,266 +176,254 @@ export function SettingsForm({ tenant }: SettingsFormProps) {
 
   return (
     <div className="max-w-3xl space-y-6">
-      {/* Page header */}
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">Settings</h1>
-        <p className="text-slate-500 mt-1">
-          Manage your company information and preferences.
-        </p>
+
+      {/* ── Hero profile banner ──────────────────────────────────────── */}
+      <div className="relative rounded-2xl overflow-hidden">
+        {/* Background gradient */}
+        <div className="h-28 bg-linear-to-r from-indigo-600 via-violet-600 to-purple-600" />
+        {/* Decorative blobs */}
+        <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/3 blur-2xl pointer-events-none" />
+        <div className="absolute bottom-0 left-1/3 w-40 h-40 bg-violet-400/20 rounded-full translate-y-1/2 blur-2xl pointer-events-none" />
+
+        <div className="bg-white px-6 pb-5">
+          <div className="flex flex-wrap items-end gap-4 -mt-10 relative z-10">
+            {/* Logo upload zone */}
+            <div className="relative group shrink-0">
+              <div className="w-20 h-20 rounded-2xl border-4 border-white shadow-xl overflow-hidden bg-linear-to-br from-indigo-500 to-violet-600 flex items-center justify-center">
+                {logoPreview ? (
+                  <Image src={logoPreview} alt="Company logo" fill className="object-cover" />
+                ) : (
+                  <span className="text-2xl font-black text-white">{getInitials(tenant.name)}</span>
+                )}
+                {logoUploading && (
+                  <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-2xl">
+                    <Loader2 className="h-6 w-6 text-white animate-spin" />
+                  </div>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={logoUploading}
+                className="absolute -bottom-1 -right-1 w-7 h-7 bg-indigo-600 hover:bg-indigo-700 rounded-full flex items-center justify-center shadow-lg transition-colors"
+                title="Upload logo"
+              >
+                <Camera className="h-3.5 w-3.5 text-white" />
+              </button>
+              <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleLogoChange} />
+            </div>
+
+            <div className="flex-1 min-w-0 pt-2">
+              <h1 className="text-xl font-extrabold text-slate-900 truncate">{tenant.name}</h1>
+              <p className="text-sm text-slate-400 truncate">{tenant.email}</p>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0 pb-1">
+              {isTrialing && daysLeft !== null ? (
+                <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold border ${daysLeft > 7 ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-amber-50 text-amber-700 border-amber-200"}`}>
+                  <span className={`w-1.5 h-1.5 rounded-full inline-block ${daysLeft > 7 ? "bg-emerald-500" : "bg-amber-500"}`} />
+                  Trial · {daysLeft}d left
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                  <CheckCircle2 className="h-3 w-3" />
+                  {tenant.subscription_plan.charAt(0).toUpperCase() + tenant.subscription_plan.slice(1)}
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Logo upload hint */}
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={logoUploading}
+            className="mt-3 flex items-center gap-2 text-xs text-slate-400 hover:text-indigo-600 transition-colors group"
+          >
+            <Upload className="h-3.5 w-3.5 group-hover:text-indigo-600" />
+            Click the camera icon or here to upload your company logo · PNG, JPG, SVG · Max 2MB
+          </button>
+        </div>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        {/* ── Company Information ───────────────────────────────────────── */}
-        <Card>
-          <CardHeader className="pb-4">
-            <div className="flex items-center gap-2">
-              <Building2 className="h-5 w-5 text-slate-500" />
-              <div>
-                <CardTitle className="text-base">Company Information</CardTitle>
-                <CardDescription>
-                  Your business details shown on documents and invoices.
-                </CardDescription>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+
+        {/* ── Company Information ──────────────────────────────────────── */}
+        <SectionCard icon={Building2} title="Company Information" description="Your business details shown on all documents and invoices." gradient="from-indigo-500 to-violet-600">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="sm:col-span-2">
               <Field label="Company Name" error={errors.name?.message}>
-                <Input
-                  {...register("name")}
-                  placeholder="Acme Corporation Ltd"
-                  className={errors.name ? "border-destructive" : ""}
-                />
+                <Input {...register("name")} placeholder="Acme Corporation Ltd"
+                  className={`h-10 bg-slate-50 border-slate-200 focus-visible:border-indigo-500 focus-visible:ring-indigo-500/20 ${errors.name ? "border-red-400" : ""}`} />
               </Field>
             </div>
-
-            <Field label="Email" error={errors.email?.message}>
-              <Input
-                {...register("email")}
-                type="email"
-                placeholder="info@company.co.ke"
-                className={errors.email ? "border-destructive" : ""}
-              />
+            <Field label="Email Address" error={errors.email?.message}>
+              <Input {...register("email")} type="email" placeholder="info@company.co.ke"
+                className={`h-10 bg-slate-50 border-slate-200 focus-visible:border-indigo-500 focus-visible:ring-indigo-500/20 ${errors.email ? "border-red-400" : ""}`} />
             </Field>
-
-            <Field label="Phone" error={errors.phone?.message}>
-              <Input
-                {...register("phone")}
-                placeholder="+254 700 000 000"
-              />
+            <Field label="Phone Number">
+              <Input {...register("phone")} placeholder="+254 700 000 000"
+                className="h-10 bg-slate-50 border-slate-200 focus-visible:border-indigo-500 focus-visible:ring-indigo-500/20" />
             </Field>
-
             <div className="sm:col-span-2">
-              <Field label="Address" error={errors.address?.message}>
-                <Input
-                  {...register("address")}
-                  placeholder="123 Kimathi Street"
-                />
+              <Field label="Street Address">
+                <Input {...register("address")} placeholder="123 Kimathi Street, CBD"
+                  className="h-10 bg-slate-50 border-slate-200 focus-visible:border-indigo-500 focus-visible:ring-indigo-500/20" />
               </Field>
             </div>
-
-            <Field label="City" error={errors.city?.message}>
-              <Input
-                {...register("city")}
-                placeholder="Nairobi"
-              />
+            <Field label="City">
+              <Input {...register("city")} placeholder="Nairobi"
+                className="h-10 bg-slate-50 border-slate-200 focus-visible:border-indigo-500 focus-visible:ring-indigo-500/20" />
             </Field>
-
-            <Field label="Country" error={errors.country?.message}>
-              <Input
-                {...register("country")}
-                placeholder="Kenya"
-              />
+            <Field label="Country">
+              <Input {...register("country")} placeholder="Kenya"
+                className="h-10 bg-slate-50 border-slate-200 focus-visible:border-indigo-500 focus-visible:ring-indigo-500/20" />
             </Field>
-
-            <Field label="KRA PIN" error={errors.kra_pin?.message}>
-              <Input
-                {...register("kra_pin")}
-                placeholder="P000000000A"
-              />
+            <Field label="KRA PIN" hint="Used for tax compliance and printed on invoices">
+              <Input {...register("kra_pin")} placeholder="P000000000A"
+                className="h-10 bg-slate-50 border-slate-200 focus-visible:border-indigo-500 focus-visible:ring-indigo-500/20 font-mono" />
             </Field>
-          </CardContent>
-        </Card>
+          </div>
+        </SectionCard>
 
-        {/* ── Invoice Settings ──────────────────────────────────────────── */}
-        <Card>
-          <CardHeader className="pb-4">
-            <div className="flex items-center gap-2">
-              <FileText className="h-5 w-5 text-slate-500" />
-              <div>
-                <CardTitle className="text-base">Invoice Settings</CardTitle>
-                <CardDescription>
-                  Document numbering prefixes and terms applied to all outgoing
-                  documents.
-                </CardDescription>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <Field label="Invoice Prefix" error={errors.invoice_prefix?.message}>
-              <Input
-                {...register("invoice_prefix")}
-                placeholder="INV"
-                className={errors.invoice_prefix ? "border-destructive" : ""}
-              />
+        {/* ── Banking Details ──────────────────────────────────────────── */}
+        <SectionCard icon={Landmark} title="Banking Details" description="Bank account information printed on invoices for customer payments." gradient="from-emerald-500 to-teal-600">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <Field label="Bank Name">
+              <Input {...register("bank_name")} placeholder="Equity Bank Kenya"
+                className="h-10 bg-slate-50 border-slate-200 focus-visible:border-emerald-500 focus-visible:ring-emerald-500/20" />
             </Field>
-
-            <Field label="Quote Prefix" error={errors.quote_prefix?.message}>
-              <Input
-                {...register("quote_prefix")}
-                placeholder="QT"
-                className={errors.quote_prefix ? "border-destructive" : ""}
-              />
+            <Field label="Account Number">
+              <Input {...register("bank_account")} placeholder="0123456789"
+                className="h-10 bg-slate-50 border-slate-200 focus-visible:border-emerald-500 focus-visible:ring-emerald-500/20 font-mono" />
             </Field>
-
-            <Field label="LPO Prefix" error={errors.lpo_prefix?.message}>
-              <Input
-                {...register("lpo_prefix")}
-                placeholder="LPO"
-                className={errors.lpo_prefix ? "border-destructive" : ""}
-              />
+            <Field label="Branch">
+              <Input {...register("bank_branch")} placeholder="Nairobi Branch"
+                className="h-10 bg-slate-50 border-slate-200 focus-visible:border-emerald-500 focus-visible:ring-emerald-500/20" />
             </Field>
+          </div>
+        </SectionCard>
 
-            <div className="sm:col-span-3">
-              <Field
-                label="Terms & Conditions"
-                error={errors.terms_and_conditions?.message}
-              >
-                <Textarea
-                  {...register("terms_and_conditions")}
-                  placeholder="Enter your standard terms and conditions printed on invoices..."
-                  rows={5}
-                />
-              </Field>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* ── Banking ───────────────────────────────────────────────────── */}
-        <Card>
-          <CardHeader className="pb-4">
-            <div className="flex items-center gap-2">
-              <Landmark className="h-5 w-5 text-slate-500" />
-              <div>
-                <CardTitle className="text-base">Banking Details</CardTitle>
-                <CardDescription>
-                  Bank information printed on invoices for payment instructions.
-                </CardDescription>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <Field label="Bank Name" error={errors.bank_name?.message}>
-              <Input
-                {...register("bank_name")}
-                placeholder="Equity Bank"
-              />
+        {/* ── Document Settings ────────────────────────────────────────── */}
+        <SectionCard icon={FileText} title="Document Settings" description="Number prefixes and default terms applied to all outgoing documents." gradient="from-amber-500 to-orange-500">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <Field label="Invoice Prefix" error={errors.invoice_prefix?.message} hint="e.g. INV → INV-000001">
+              <Input {...register("invoice_prefix")} placeholder="INV"
+                className={`h-10 bg-slate-50 border-slate-200 focus-visible:border-amber-500 focus-visible:ring-amber-500/20 font-mono ${errors.invoice_prefix ? "border-red-400" : ""}`} />
             </Field>
-
-            <Field label="Account Number" error={errors.bank_account?.message}>
-              <Input
-                {...register("bank_account")}
-                placeholder="0123456789"
-              />
+            <Field label="Quote Prefix" error={errors.quote_prefix?.message} hint="e.g. QT → QT-000001">
+              <Input {...register("quote_prefix")} placeholder="QT"
+                className={`h-10 bg-slate-50 border-slate-200 focus-visible:border-amber-500 focus-visible:ring-amber-500/20 font-mono ${errors.quote_prefix ? "border-red-400" : ""}`} />
             </Field>
-
-            <Field label="Branch" error={errors.bank_branch?.message}>
-              <Input
-                {...register("bank_branch")}
-                placeholder="Nairobi Branch"
-              />
+            <Field label="LPO Prefix" error={errors.lpo_prefix?.message} hint="e.g. LPO → LPO-000001">
+              <Input {...register("lpo_prefix")} placeholder="LPO"
+                className={`h-10 bg-slate-50 border-slate-200 focus-visible:border-amber-500 focus-visible:ring-amber-500/20 font-mono ${errors.lpo_prefix ? "border-red-400" : ""}`} />
             </Field>
-          </CardContent>
-        </Card>
+          </div>
+          <div className="mt-4">
+            <Field label="Default Terms & Conditions" hint="Printed at the bottom of every invoice and quote">
+              <Textarea {...register("terms_and_conditions")}
+                placeholder="e.g. Payment is due within 30 days of invoice date. Late payments attract a 2% monthly interest charge. Goods remain the property of the seller until full payment is received."
+                rows={5}
+                className="bg-slate-50 border-slate-200 focus-visible:border-amber-500 focus-visible:ring-amber-500/20 text-sm leading-relaxed resize-none" />
+            </Field>
+          </div>
+        </SectionCard>
 
-        {/* ── Regional ──────────────────────────────────────────────────── */}
-        <Card>
-          <CardHeader className="pb-4">
-            <div className="flex items-center gap-2">
-              <Globe className="h-5 w-5 text-slate-500" />
-              <div>
-                <CardTitle className="text-base">Regional Settings</CardTitle>
-                <CardDescription>
-                  Currency and timezone used across the platform.
-                </CardDescription>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        {/* ── Regional Settings ────────────────────────────────────────── */}
+        <SectionCard icon={Globe} title="Regional Settings" description="Currency, timezone and locale used across the entire platform." gradient="from-rose-500 to-pink-600">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field label="Currency" error={errors.currency?.message}>
-              <Select
-                value={currency}
-                onValueChange={(val) =>
-                  setValue("currency", val, { shouldValidate: true })
-                }
-              >
-                <SelectTrigger
-                  className={errors.currency ? "border-destructive" : ""}
-                >
+              <Select value={currency} onValueChange={(v) => setValue("currency", v, { shouldValidate: true })}>
+                <SelectTrigger className="h-10 bg-slate-50 border-slate-200 focus:ring-rose-500/20 focus:border-rose-500">
                   <SelectValue placeholder="Select currency" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="KES">KES — Kenyan Shilling</SelectItem>
-                  <SelectItem value="USD">USD — US Dollar</SelectItem>
-                  <SelectItem value="EUR">EUR — Euro</SelectItem>
-                  <SelectItem value="GBP">GBP — British Pound</SelectItem>
-                  <SelectItem value="TZS">TZS — Tanzanian Shilling</SelectItem>
-                  <SelectItem value="UGX">UGX — Ugandan Shilling</SelectItem>
+                  {[
+                    ["KES", "KES — Kenyan Shilling"],
+                    ["USD", "USD — US Dollar"],
+                    ["EUR", "EUR — Euro"],
+                    ["GBP", "GBP — British Pound"],
+                    ["TZS", "TZS — Tanzanian Shilling"],
+                    ["UGX", "UGX — Ugandan Shilling"],
+                    ["RWF", "RWF — Rwandan Franc"],
+                    ["ETB", "ETB — Ethiopian Birr"],
+                  ].map(([v, l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}
                 </SelectContent>
               </Select>
             </Field>
-
             <Field label="Timezone" error={errors.timezone?.message}>
-              <Select
-                value={timezone}
-                onValueChange={(val) =>
-                  setValue("timezone", val, { shouldValidate: true })
-                }
-              >
-                <SelectTrigger
-                  className={errors.timezone ? "border-destructive" : ""}
-                >
+              <Select value={timezone} onValueChange={(v) => setValue("timezone", v, { shouldValidate: true })}>
+                <SelectTrigger className="h-10 bg-slate-50 border-slate-200 focus:ring-rose-500/20 focus:border-rose-500">
                   <SelectValue placeholder="Select timezone" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Africa/Nairobi">
-                    Africa/Nairobi (EAT, UTC+3)
-                  </SelectItem>
-                  <SelectItem value="Africa/Kampala">
-                    Africa/Kampala (EAT, UTC+3)
-                  </SelectItem>
-                  <SelectItem value="Africa/Dar_es_Salaam">
-                    Africa/Dar_es_Salaam (EAT, UTC+3)
-                  </SelectItem>
-                  <SelectItem value="Africa/Lagos">
-                    Africa/Lagos (WAT, UTC+1)
-                  </SelectItem>
-                  <SelectItem value="Africa/Johannesburg">
-                    Africa/Johannesburg (SAST, UTC+2)
-                  </SelectItem>
-                  <SelectItem value="UTC">UTC</SelectItem>
-                  <SelectItem value="Europe/London">
-                    Europe/London (GMT/BST)
-                  </SelectItem>
+                  {[
+                    ["Africa/Nairobi", "Africa/Nairobi (EAT, UTC+3)"],
+                    ["Africa/Kampala", "Africa/Kampala (EAT, UTC+3)"],
+                    ["Africa/Dar_es_Salaam", "Africa/Dar_es_Salaam (EAT, UTC+3)"],
+                    ["Africa/Kigali", "Africa/Kigali (CAT, UTC+2)"],
+                    ["Africa/Lagos", "Africa/Lagos (WAT, UTC+1)"],
+                    ["Africa/Johannesburg", "Africa/Johannesburg (SAST, UTC+2)"],
+                    ["Africa/Addis_Ababa", "Africa/Addis_Ababa (EAT, UTC+3)"],
+                    ["UTC", "UTC"],
+                    ["Europe/London", "Europe/London (GMT/BST)"],
+                  ].map(([v, l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}
                 </SelectContent>
               </Select>
             </Field>
+          </div>
+        </SectionCard>
+
+        {/* ── Subscription ─────────────────────────────────────────────── */}
+        <Card className="border-0 shadow-sm overflow-hidden">
+          <div className="h-1 w-full bg-linear-to-r from-slate-400 to-slate-600" />
+          <CardContent className="pt-5">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center">
+                  <CreditCard className="h-5 w-5 text-slate-500" />
+                </div>
+                <div>
+                  <p className="font-bold text-slate-900 text-sm">Subscription Plan</p>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    {isTrialing
+                      ? `Free trial · ${daysLeft !== null ? `${daysLeft} days remaining` : "expires soon"}`
+                      : `${tenant.subscription_plan} · Active`}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className={`rounded-full px-3 py-1 text-xs font-bold ${isTrialing ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700"}`}>
+                  {isTrialing ? "Trial" : "Active"}
+                </span>
+                <Button variant="outline" size="sm" type="button" className="text-xs h-8">
+                  Upgrade Plan
+                </Button>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
-        {/* ── Save ──────────────────────────────────────────────────────── */}
-        <div className="flex justify-end">
-          <Button type="submit" disabled={isSaving} className="min-w-32">
-            {isSaving ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Saving…
-              </>
-            ) : (
-              "Save Changes"
-            )}
-          </Button>
+        {/* ── Save bar ─────────────────────────────────────────────────── */}
+        <div className={`sticky bottom-4 z-20 transition-all duration-300 ${isDirty ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2 pointer-events-none"}`}>
+          <div className="bg-white/90 backdrop-blur-sm border border-slate-200 rounded-2xl shadow-xl shadow-slate-200/60 px-5 py-3 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2 text-sm text-slate-600">
+              <Settings2 className="h-4 w-4 text-amber-500" />
+              <span>You have unsaved changes</span>
+            </div>
+            <Button
+              type="submit"
+              disabled={isSaving}
+              className="gap-2 bg-linear-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 border-0 text-white font-semibold shadow-lg shadow-indigo-500/25 px-6"
+            >
+              {isSaving
+                ? <><Loader2 className="h-4 w-4 animate-spin" />Saving…</>
+                : <><Save className="h-4 w-4" />Save Changes</>}
+            </Button>
+          </div>
         </div>
+
       </form>
     </div>
   );
