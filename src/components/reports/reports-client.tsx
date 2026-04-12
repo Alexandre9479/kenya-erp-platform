@@ -2,13 +2,33 @@
 
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { TrendingUp, TrendingDown, Users, Package, DollarSign, AlertCircle } from "lucide-react";
+import {
+  TrendingUp,
+  TrendingDown,
+  Users,
+  Package,
+  DollarSign,
+  AlertCircle,
+  BarChart3,
+  FileText,
+  CheckCircle2,
+  Clock,
+  Calendar,
+} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 
 type ReportData = {
   totalRevenue: number;
@@ -42,6 +62,7 @@ export function ReportsClient() {
 
   useEffect(() => {
     fetchReport();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function fetchReport() {
@@ -59,14 +80,16 @@ export function ReportsClient() {
     }
   }
 
-  const kpis = data ? [
-    { label: "Total Revenue", value: KES(data.totalRevenue), icon: TrendingUp, color: "text-emerald-600", bg: "bg-emerald-50" },
-    { label: "Total Collected", value: KES(data.totalReceived), icon: DollarSign, color: "text-blue-600", bg: "bg-blue-50" },
-    { label: "Outstanding", value: KES(data.outstanding), icon: AlertCircle, color: "text-amber-600", bg: "bg-amber-50" },
-    { label: "Total Purchases", value: KES(data.totalPurchases), icon: TrendingDown, color: "text-red-600", bg: "bg-red-50" },
-    { label: "Customers", value: String(data.customerCount), icon: Users, color: "text-violet-600", bg: "bg-violet-50" },
-    { label: "Products", value: String(data.productCount), icon: Package, color: "text-slate-600", bg: "bg-slate-50" },
-  ] : [];
+  const kpis = data
+    ? [
+        { label: "Total Revenue", value: KES(data.totalRevenue), Icon: TrendingUp, from: "from-emerald-500", to: "to-teal-500", text: "text-emerald-600" },
+        { label: "Collected", value: KES(data.totalReceived), Icon: DollarSign, from: "from-blue-500", to: "to-indigo-500", text: "text-blue-600" },
+        { label: "Outstanding", value: KES(data.outstanding), Icon: AlertCircle, from: "from-amber-500", to: "to-orange-500", text: "text-amber-600" },
+        { label: "Purchases", value: KES(data.totalPurchases), Icon: TrendingDown, from: "from-red-500", to: "to-rose-500", text: "text-red-600" },
+        { label: "Customers", value: String(data.customerCount), Icon: Users, from: "from-violet-500", to: "to-purple-500", text: "text-violet-600" },
+        { label: "Products", value: String(data.productCount), Icon: Package, from: "from-slate-500", to: "to-slate-600", text: "text-slate-600" },
+      ]
+    : [];
 
   const monthLabel = (m: string) => {
     const [year, month] = m.split("-");
@@ -75,31 +98,64 @@ export function ReportsClient() {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Date range filter */}
-      <Card>
-        <CardContent className="pt-4">
-          <div className="flex flex-wrap items-end gap-4">
-            <div className="space-y-1.5">
-              <Label>From</Label>
-              <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="w-40" />
+    <div className="flex flex-col gap-6">
+
+      {/* ── Module Hero Strip ──────────────────────────────── */}
+      <div className="relative rounded-2xl overflow-hidden bg-linear-to-r from-indigo-600 via-violet-600 to-indigo-700 p-6 text-white shadow-lg">
+        <div className="absolute -top-8 -right-8 w-40 h-40 rounded-full bg-white/10" />
+        <div className="absolute -bottom-6 -right-20 w-56 h-56 rounded-full bg-white/5" />
+
+        <div className="relative flex flex-col gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-sm shadow-inner">
+                <BarChart3 className="size-7 text-white" />
+              </div>
+              <div>
+                <p className="text-indigo-200 text-sm font-medium tracking-wide uppercase">Analytics</p>
+                <h1 className="text-2xl font-bold tracking-tight">Business Reports</h1>
+                <p className="text-indigo-200 text-sm mt-0.5">Revenue, collections & performance insights</p>
+              </div>
             </div>
-            <div className="space-y-1.5">
-              <Label>To</Label>
-              <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="w-40" />
+          </div>
+
+          {/* Date filter row inside hero */}
+          <div className="flex flex-wrap items-end gap-3 bg-white/10 backdrop-blur-sm rounded-xl p-4">
+            <Calendar className="size-4 text-indigo-200 mt-auto mb-1" />
+            <div className="space-y-1">
+              <Label className="text-indigo-100 text-xs font-medium">From</Label>
+              <Input
+                type="date"
+                value={from}
+                onChange={(e) => setFrom(e.target.value)}
+                className="w-36 bg-white/20 border-white/30 text-white placeholder:text-indigo-200 scheme-dark h-8 text-sm"
+              />
             </div>
-            <Button onClick={fetchReport} disabled={isLoading}>
+            <div className="space-y-1">
+              <Label className="text-indigo-100 text-xs font-medium">To</Label>
+              <Input
+                type="date"
+                value={to}
+                onChange={(e) => setTo(e.target.value)}
+                className="w-36 bg-white/20 border-white/30 text-white placeholder:text-indigo-200 scheme-dark h-8 text-sm"
+              />
+            </div>
+            <Button
+              onClick={fetchReport}
+              disabled={isLoading}
+              className="bg-white text-indigo-700 hover:bg-indigo-50 font-semibold shadow-md h-8 text-sm"
+            >
               {isLoading ? "Loading…" : "Generate Report"}
             </Button>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      {/* KPI Cards */}
+      {/* ── KPI Cards ─────────────────────────────────────── */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
         {isLoading
           ? Array.from({ length: 6 }).map((_, i) => (
-              <Card key={i}>
+              <Card key={i} className="border-slate-200 shadow-sm">
                 <CardContent className="pt-4">
                   <Skeleton className="h-4 w-20 mb-2" />
                   <Skeleton className="h-7 w-28" />
@@ -107,40 +163,78 @@ export function ReportsClient() {
               </Card>
             ))
           : kpis.map((kpi) => {
-              const Icon = kpi.icon;
+              const { Icon } = kpi;
               return (
-                <Card key={kpi.label}>
+                <Card key={kpi.label} className="border-slate-200 shadow-sm overflow-hidden">
+                  <div className={`h-1 w-full bg-linear-to-r ${kpi.from} ${kpi.to}`} />
                   <CardContent className="pt-4">
-                    <div className={`inline-flex p-2 rounded-lg mb-2 ${kpi.bg}`}>
-                      <Icon className={`h-4 w-4 ${kpi.color}`} />
+                    <div className={`inline-flex p-2 rounded-xl mb-2 bg-linear-to-br ${kpi.from} ${kpi.to}`}>
+                      <Icon className="h-4 w-4 text-white" />
                     </div>
-                    <p className="text-xs text-slate-500 mb-0.5">{kpi.label}</p>
-                    <p className={`text-lg font-bold ${kpi.color}`}>{kpi.value}</p>
+                    <p className="text-xs text-slate-500 mb-0.5 font-medium">{kpi.label}</p>
+                    <p className={`text-lg font-bold ${kpi.text}`}>{kpi.value}</p>
                   </CardContent>
                 </Card>
               );
             })}
       </div>
 
-      {/* Revenue Chart */}
-      <Card>
+      {/* ── Revenue Chart ─────────────────────────────────── */}
+      <Card className="border-slate-200 shadow-sm overflow-hidden">
+        <div className="h-1 w-full bg-linear-to-r from-indigo-500 via-violet-500 to-indigo-600" />
         <CardHeader>
-          <CardTitle className="text-base">Monthly Revenue vs Collections</CardTitle>
+          <CardTitle className="text-base font-semibold text-slate-800 flex items-center gap-2">
+            <BarChart3 className="size-4 text-indigo-500" />
+            Monthly Revenue vs Collections
+          </CardTitle>
         </CardHeader>
         <CardContent>
           {isLoading ? (
             <Skeleton className="h-64 w-full" />
           ) : data && data.monthly.length > 0 ? (
             <ResponsiveContainer width="100%" height={260}>
-              <AreaChart data={data.monthly.map((m) => ({ ...m, month: monthLabel(m.month) }))}>
+              <AreaChart
+                data={data.monthly.map((m) => ({ ...m, month: monthLabel(m.month) }))}
+              >
+                <defs>
+                  <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient id="colorReceived" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-                <YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}K`} />
-                <Tooltip
-                  formatter={(value) => [`KES ${new Intl.NumberFormat("en-KE").format(value as number)}`, undefined]}
+                <XAxis dataKey="month" tick={{ fontSize: 12, fill: "#64748b" }} />
+                <YAxis
+                  tick={{ fontSize: 12, fill: "#64748b" }}
+                  tickFormatter={(v) => `${(v / 1000).toFixed(0)}K`}
                 />
-                <Area type="monotone" dataKey="revenue" name="Revenue" stroke="#10b981" fill="#d1fae5" strokeWidth={2} />
-                <Area type="monotone" dataKey="received" name="Collected" stroke="#3b82f6" fill="#dbeafe" strokeWidth={2} />
+                <Tooltip
+                  formatter={(value) => [
+                    `KES ${new Intl.NumberFormat("en-KE").format(value as number)}`,
+                    undefined,
+                  ]}
+                  contentStyle={{ borderRadius: "8px", border: "1px solid #e2e8f0", fontSize: "12px" }}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="revenue"
+                  name="Revenue"
+                  stroke="#10b981"
+                  fill="url(#colorRevenue)"
+                  strokeWidth={2.5}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="received"
+                  name="Collected"
+                  stroke="#6366f1"
+                  fill="url(#colorReceived)"
+                  strokeWidth={2.5}
+                />
               </AreaChart>
             </ResponsiveContainer>
           ) : (
@@ -151,27 +245,27 @@ export function ReportsClient() {
         </CardContent>
       </Card>
 
-      {/* Invoice Stats */}
+      {/* ── Invoice Stats ─────────────────────────────────── */}
       {data && (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <Card>
-            <CardContent className="pt-4">
-              <p className="text-sm text-slate-500">Total Invoices</p>
-              <p className="text-2xl font-bold text-slate-900 mt-1">{data.invoiceCount}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-4">
-              <p className="text-sm text-slate-500">Paid Invoices</p>
-              <p className="text-2xl font-bold text-emerald-600 mt-1">{data.paidCount}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-4">
-              <p className="text-sm text-slate-500">Overdue Invoices</p>
-              <p className="text-2xl font-bold text-red-600 mt-1">{data.overdueCount}</p>
-            </CardContent>
-          </Card>
+          {[
+            { label: "Total Invoices", value: data.invoiceCount, Icon: FileText, color: "text-indigo-600", bar: "from-indigo-500 to-violet-500" },
+            { label: "Paid Invoices", value: data.paidCount, Icon: CheckCircle2, color: "text-emerald-600", bar: "from-emerald-500 to-teal-500" },
+            { label: "Overdue Invoices", value: data.overdueCount, Icon: Clock, color: "text-red-600", bar: "from-red-500 to-rose-500" },
+          ].map(({ label, value, Icon, color, bar }) => (
+            <Card key={label} className="border-slate-200 shadow-sm overflow-hidden">
+              <div className={`h-1 w-full bg-linear-to-r ${bar}`} />
+              <CardContent className="pt-4 flex items-center gap-4">
+                <div className={`inline-flex p-3 rounded-xl bg-linear-to-br ${bar}`}>
+                  <Icon className="size-5 text-white" />
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500 font-medium">{label}</p>
+                  <p className={`text-2xl font-bold mt-0.5 ${color}`}>{value}</p>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
         </div>
       )}
     </div>

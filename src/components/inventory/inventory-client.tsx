@@ -12,6 +12,8 @@ import {
   PowerOff,
   Power,
   Trash2,
+  AlertTriangle,
+  Tag,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -137,17 +139,11 @@ export function InventoryClient({
       setDebouncedSearch(searchInput);
       setCurrentPage(1);
     }, 400);
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-    };
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
   }, [searchInput]);
 
-  // Reset page on category change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [selectedCategory]);
+  useEffect(() => { setCurrentPage(1); }, [selectedCategory]);
 
-  // Fetch products whenever filters / page change
   const fetchProducts = useCallback(async () => {
     setIsLoadingProducts(true);
     try {
@@ -172,17 +168,12 @@ export function InventoryClient({
     }
   }, [debouncedSearch, selectedCategory, currentPage]);
 
-  // Skip the very first render — we have initial data from SSR
   const isFirstRender = useRef(true);
   useEffect(() => {
-    if (isFirstRender.current) {
-      isFirstRender.current = false;
-      return;
-    }
+    if (isFirstRender.current) { isFirstRender.current = false; return; }
     fetchProducts();
   }, [fetchProducts]);
 
-  // Fetch categories (used after create/update/delete)
   const fetchCategories = useCallback(async () => {
     setIsLoadingCategories(true);
     try {
@@ -200,7 +191,6 @@ export function InventoryClient({
     }
   }, []);
 
-  // Toggle product active status
   async function handleToggleActive(product: ProductRow) {
     try {
       const res = await fetch(`/api/products/${product.id}`, {
@@ -212,21 +202,16 @@ export function InventoryClient({
         const body = (await res.json()) as { error?: string };
         throw new Error(body.error ?? "Update failed");
       }
-      toast.success(
-        product.is_active ? "Product deactivated" : "Product activated"
-      );
+      toast.success(product.is_active ? "Product deactivated" : "Product activated");
       fetchProducts();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Update failed");
     }
   }
 
-  // Delete category
   async function handleDeleteCategory(category: CategoryRow) {
     try {
-      const res = await fetch(`/api/categories/${category.id}`, {
-        method: "DELETE",
-      });
+      const res = await fetch(`/api/categories/${category.id}`, { method: "DELETE" });
       if (!res.ok) {
         const body = (await res.json()) as { error?: string };
         throw new Error(body.error ?? "Delete failed");
@@ -238,6 +223,10 @@ export function InventoryClient({
     }
   }
 
+  // Derived KPIs
+  const lowStockCount = products.filter((p) => p.total_stock <= p.reorder_level).length;
+  const activeCount = products.filter((p) => p.is_active).length;
+
   // Pagination helpers
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_LIMIT));
   const showingFrom = totalCount === 0 ? 0 : (currentPage - 1) * PAGE_LIMIT + 1;
@@ -245,19 +234,56 @@ export function InventoryClient({
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Page heading */}
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">Inventory</h1>
-        <p className="text-sm text-slate-500 mt-0.5">
-          Manage products, categories, and stock levels
-        </p>
+
+      {/* ── Module Hero Strip ──────────────────────────────── */}
+      <div className="relative rounded-2xl overflow-hidden bg-linear-to-r from-cyan-500 via-teal-500 to-cyan-600 p-6 text-white shadow-lg">
+        <div className="absolute -top-8 -right-8 w-40 h-40 rounded-full bg-white/10" />
+        <div className="absolute -bottom-6 -right-20 w-56 h-56 rounded-full bg-white/5" />
+
+        <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-sm shadow-inner">
+              <Package className="size-7 text-white" />
+            </div>
+            <div>
+              <p className="text-cyan-100 text-sm font-medium tracking-wide uppercase">Inventory</p>
+              <h1 className="text-2xl font-bold tracking-tight">Product Catalogue</h1>
+              <p className="text-cyan-100 text-sm mt-0.5">Manage products, categories & stock levels</p>
+            </div>
+          </div>
+          <Button
+            onClick={() => { setEditingProduct(undefined); setProductSheetOpen(true); }}
+            className="bg-white text-cyan-700 hover:bg-cyan-50 font-semibold shadow-md gap-2 shrink-0"
+          >
+            <Plus className="size-4" />
+            Add Product
+          </Button>
+        </div>
+
+        {/* KPI row */}
+        <div className="relative mt-6 grid grid-cols-3 gap-3">
+          {[
+            { label: "Total Products", value: String(totalCount), Icon: Package },
+            { label: "Active", value: String(activeCount), Icon: Power },
+            { label: "Low Stock", value: String(lowStockCount), Icon: AlertTriangle },
+          ].map(({ label, value, Icon }) => (
+            <div key={label} className="bg-white/15 backdrop-blur-sm rounded-xl p-3 text-center">
+              <Icon className="size-4 text-cyan-100 mx-auto mb-1" />
+              <p className="text-lg font-bold">{value}</p>
+              <p className="text-cyan-100 text-xs">{label}</p>
+            </div>
+          ))}
+        </div>
       </div>
 
+      {/* ── Tabs ──────────────────────────────────────────── */}
       <Tabs defaultValue="products">
-        <TabsList>
-          <TabsTrigger value="products">Products</TabsTrigger>
-          <TabsTrigger value="categories">Categories</TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto pb-1">
+          <TabsList className="w-max">
+            <TabsTrigger value="products">Products</TabsTrigger>
+            <TabsTrigger value="categories">Categories</TabsTrigger>
+          </TabsList>
+        </div>
 
         {/* ─── PRODUCTS TAB ─────────────────────────────────── */}
         <TabsContent value="products" className="mt-4">
@@ -273,54 +299,33 @@ export function InventoryClient({
               />
             </div>
 
-            <Select
-              value={selectedCategory}
-              onValueChange={(val) => setSelectedCategory(val)}
-            >
+            <Select value={selectedCategory} onValueChange={(val) => setSelectedCategory(val)}>
               <SelectTrigger className="w-full sm:w-52">
                 <SelectValue placeholder="All Categories" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Categories</SelectItem>
                 {categories.map((cat) => (
-                  <SelectItem key={cat.id} value={cat.id}>
-                    {cat.name}
-                  </SelectItem>
+                  <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
-
-            <Button
-              onClick={() => {
-                setEditingProduct(undefined);
-                setProductSheetOpen(true);
-              }}
-              className="shrink-0"
-            >
-              <Plus className="size-4 mr-2" />
-              Add Product
-            </Button>
           </div>
 
           {/* Table */}
-          <div className="rounded-lg border border-slate-200 overflow-hidden">
+          <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+            <div className="h-1 w-full bg-linear-to-r from-cyan-500 via-teal-500 to-cyan-600" />
             <Table>
               <TableHeader>
-                <TableRow className="bg-slate-50">
-                  <TableHead className="font-semibold">SKU</TableHead>
-                  <TableHead className="font-semibold">Name</TableHead>
-                  <TableHead className="font-semibold">Category</TableHead>
-                  <TableHead className="font-semibold">Unit</TableHead>
-                  <TableHead className="font-semibold text-right">
-                    Selling Price
-                  </TableHead>
-                  <TableHead className="font-semibold text-right">
-                    Stock
-                  </TableHead>
-                  <TableHead className="font-semibold text-right">
-                    VAT
-                  </TableHead>
-                  <TableHead className="font-semibold">Status</TableHead>
+                <TableRow className="bg-slate-50 hover:bg-slate-50">
+                  <TableHead className="font-semibold text-slate-600 uppercase tracking-wide text-xs">SKU</TableHead>
+                  <TableHead className="font-semibold text-slate-600 uppercase tracking-wide text-xs">Name</TableHead>
+                  <TableHead className="font-semibold text-slate-600 uppercase tracking-wide text-xs">Category</TableHead>
+                  <TableHead className="font-semibold text-slate-600 uppercase tracking-wide text-xs">Unit</TableHead>
+                  <TableHead className="font-semibold text-slate-600 uppercase tracking-wide text-xs text-right">Selling Price</TableHead>
+                  <TableHead className="font-semibold text-slate-600 uppercase tracking-wide text-xs text-right">Stock</TableHead>
+                  <TableHead className="font-semibold text-slate-600 uppercase tracking-wide text-xs text-right">VAT</TableHead>
+                  <TableHead className="font-semibold text-slate-600 uppercase tracking-wide text-xs">Status</TableHead>
                   <TableHead className="w-10" />
                 </TableRow>
               </TableHeader>
@@ -329,73 +334,60 @@ export function InventoryClient({
                   Array.from({ length: 5 }).map((_, i) => (
                     <TableRow key={i}>
                       {Array.from({ length: 9 }).map((__, j) => (
-                        <TableCell key={j}>
-                          <Skeleton className="h-4 w-full" />
-                        </TableCell>
+                        <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
                       ))}
                     </TableRow>
                   ))
                 ) : products.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={9}>
-                      <div className="flex flex-col items-center justify-center py-12 text-slate-400">
-                        <Package className="size-10 mb-3 opacity-40" />
-                        <p className="text-sm font-medium">No products found</p>
-                        <p className="text-xs mt-1">
-                          Try adjusting your search or filters
-                        </p>
+                      <div className="flex flex-col items-center justify-center py-16 gap-4 text-slate-400">
+                        <div className="w-16 h-16 rounded-2xl bg-linear-to-br from-cyan-100 to-teal-100 flex items-center justify-center">
+                          <Package className="size-8 text-cyan-400" />
+                        </div>
+                        <div className="text-center">
+                          <p className="text-sm font-semibold text-slate-600">No products found</p>
+                          <p className="text-xs text-slate-400 mt-1">Try adjusting your search or filters</p>
+                        </div>
+                        <Button
+                          size="sm"
+                          className="bg-cyan-600 hover:bg-cyan-700 text-white gap-2"
+                          onClick={() => { setEditingProduct(undefined); setProductSheetOpen(true); }}
+                        >
+                          <Plus className="size-3.5" /> Add Product
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>
                 ) : (
                   products.map((product) => {
-                    const stockWarning =
-                      product.total_stock <= product.reorder_level;
+                    const stockWarning = product.total_stock <= product.reorder_level;
                     return (
-                      <TableRow key={product.id} className="hover:bg-slate-50">
-                        <TableCell className="font-mono text-xs text-slate-600">
-                          {product.sku}
-                        </TableCell>
-                        <TableCell className="font-medium">
-                          {product.name}
-                        </TableCell>
+                      <TableRow key={product.id} className="hover:bg-cyan-50/30 transition-colors">
+                        <TableCell className="font-mono text-xs text-slate-600">{product.sku}</TableCell>
+                        <TableCell className="font-semibold text-slate-900">{product.name}</TableCell>
                         <TableCell className="text-slate-500 text-sm">
-                          {product.category_name ?? (
-                            <span className="italic text-slate-300">—</span>
-                          )}
+                          {product.category_name ?? <span className="italic text-slate-300">—</span>}
                         </TableCell>
-                        <TableCell className="text-slate-500 text-sm">
-                          {product.unit}
-                        </TableCell>
-                        <TableCell className="text-right font-medium">
+                        <TableCell className="text-slate-500 text-sm">{product.unit}</TableCell>
+                        <TableCell className="text-right font-medium text-slate-700 tabular-nums">
                           {formatKES(product.selling_price)}
                         </TableCell>
-                        <TableCell
-                          className={cn(
-                            "text-right font-semibold tabular-nums",
-                            stockWarning ? "text-amber-600" : "text-slate-700"
-                          )}
-                        >
+                        <TableCell className={cn(
+                          "text-right font-semibold tabular-nums",
+                          stockWarning ? "text-amber-600" : "text-slate-700"
+                        )}>
                           {product.total_stock.toLocaleString()}
-                          {stockWarning && (
-                            <span className="ml-1 text-xs font-normal">
-                              ⚠
-                            </span>
-                          )}
+                          {stockWarning && <span className="ml-1 text-xs">⚠</span>}
                         </TableCell>
-                        <TableCell className="text-right text-slate-500 text-sm">
-                          {product.vat_rate}%
-                        </TableCell>
+                        <TableCell className="text-right text-slate-500 text-sm">{product.vat_rate}%</TableCell>
                         <TableCell>
                           {product.is_active ? (
-                            <Badge className="bg-green-100 text-green-700 border-green-200">
+                            <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 font-medium" variant="outline">
                               Active
                             </Badge>
                           ) : (
-                            <Badge
-                              variant="secondary"
-                              className="bg-slate-100 text-slate-500"
-                            >
+                            <Badge className="bg-slate-100 text-slate-500 border-slate-200 font-medium" variant="outline">
                               Inactive
                             </Badge>
                           )}
@@ -403,44 +395,24 @@ export function InventoryClient({
                         <TableCell>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="size-8"
-                              >
+                              <Button variant="ghost" size="icon" className="size-8">
                                 <MoreHorizontal className="size-4" />
                                 <span className="sr-only">Actions</span>
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem
-                                onClick={() => {
-                                  setEditingProduct(product);
-                                  setProductSheetOpen(true);
-                                }}
-                              >
-                                <Pencil className="size-4 mr-2" />
-                                Edit
+                              <DropdownMenuItem onClick={() => { setEditingProduct(product); setProductSheetOpen(true); }}>
+                                <Pencil className="size-4 mr-2" /> Edit
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem
                                 onClick={() => handleToggleActive(product)}
-                                className={
-                                  product.is_active
-                                    ? "text-amber-600"
-                                    : "text-green-600"
-                                }
+                                className={product.is_active ? "text-amber-600" : "text-emerald-600"}
                               >
                                 {product.is_active ? (
-                                  <>
-                                    <PowerOff className="size-4 mr-2" />
-                                    Deactivate
-                                  </>
+                                  <><PowerOff className="size-4 mr-2" /> Deactivate</>
                                 ) : (
-                                  <>
-                                    <Power className="size-4 mr-2" />
-                                    Activate
-                                  </>
+                                  <><Power className="size-4 mr-2" /> Activate</>
                                 )}
                               </DropdownMenuItem>
                             </DropdownMenuContent>
@@ -457,27 +429,21 @@ export function InventoryClient({
           {/* Pagination */}
           {totalCount > 0 && (
             <div className="flex items-center justify-between mt-4 text-sm text-slate-500">
-              <span>
-                Showing {showingFrom}–{showingTo} of {totalCount}
-              </span>
+              <span>Showing {showingFrom}–{showingTo} of {totalCount}</span>
               <div className="flex gap-2">
                 <Button
-                  variant="outline"
-                  size="sm"
+                  variant="outline" size="sm"
                   disabled={currentPage <= 1 || isLoadingProducts}
                   onClick={() => setCurrentPage((p) => p - 1)}
                 >
-                  <ChevronLeft className="size-4 mr-1" />
-                  Prev
+                  <ChevronLeft className="size-4 mr-1" /> Prev
                 </Button>
                 <Button
-                  variant="outline"
-                  size="sm"
+                  variant="outline" size="sm"
                   disabled={currentPage >= totalPages || isLoadingProducts}
                   onClick={() => setCurrentPage((p) => p + 1)}
                 >
-                  Next
-                  <ChevronRight className="size-4 ml-1" />
+                  Next <ChevronRight className="size-4 ml-1" />
                 </Button>
               </div>
             </div>
@@ -488,22 +454,20 @@ export function InventoryClient({
         <TabsContent value="categories" className="mt-4">
           <div className="flex justify-end mb-4">
             <Button
-              onClick={() => {
-                setEditingCategory(undefined);
-                setCategorySheetOpen(true);
-              }}
+              onClick={() => { setEditingCategory(undefined); setCategorySheetOpen(true); }}
+              className="bg-cyan-600 hover:bg-cyan-700 text-white gap-2"
             >
-              <Plus className="size-4 mr-2" />
-              Add Category
+              <Plus className="size-4" /> Add Category
             </Button>
           </div>
 
-          <div className="rounded-lg border border-slate-200 overflow-hidden">
+          <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+            <div className="h-1 w-full bg-linear-to-r from-cyan-500 via-teal-500 to-cyan-600" />
             <Table>
               <TableHeader>
-                <TableRow className="bg-slate-50">
-                  <TableHead className="font-semibold">Name</TableHead>
-                  <TableHead className="font-semibold">Description</TableHead>
+                <TableRow className="bg-slate-50 hover:bg-slate-50">
+                  <TableHead className="font-semibold text-slate-600 uppercase tracking-wide text-xs">Name</TableHead>
+                  <TableHead className="font-semibold text-slate-600 uppercase tracking-wide text-xs">Description</TableHead>
                   <TableHead className="w-10" />
                 </TableRow>
               </TableHeader>
@@ -512,53 +476,42 @@ export function InventoryClient({
                   Array.from({ length: 3 }).map((_, i) => (
                     <TableRow key={i}>
                       {Array.from({ length: 3 }).map((__, j) => (
-                        <TableCell key={j}>
-                          <Skeleton className="h-4 w-full" />
-                        </TableCell>
+                        <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
                       ))}
                     </TableRow>
                   ))
                 ) : categories.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={3}>
-                      <div className="flex flex-col items-center justify-center py-12 text-slate-400">
-                        <p className="text-sm font-medium">No categories yet</p>
-                        <p className="text-xs mt-1">
-                          Create a category to organise your products
-                        </p>
+                      <div className="flex flex-col items-center justify-center py-16 gap-4 text-slate-400">
+                        <div className="w-16 h-16 rounded-2xl bg-linear-to-br from-cyan-100 to-teal-100 flex items-center justify-center">
+                          <Tag className="size-8 text-cyan-400" />
+                        </div>
+                        <div className="text-center">
+                          <p className="text-sm font-semibold text-slate-600">No categories yet</p>
+                          <p className="text-xs text-slate-400 mt-1">Create a category to organise your products</p>
+                        </div>
                       </div>
                     </TableCell>
                   </TableRow>
                 ) : (
                   categories.map((cat) => (
-                    <TableRow key={cat.id} className="hover:bg-slate-50">
-                      <TableCell className="font-medium">{cat.name}</TableCell>
+                    <TableRow key={cat.id} className="hover:bg-cyan-50/30 transition-colors">
+                      <TableCell className="font-semibold text-slate-900">{cat.name}</TableCell>
                       <TableCell className="text-slate-500 text-sm">
-                        {cat.description ?? (
-                          <span className="italic text-slate-300">—</span>
-                        )}
+                        {cat.description ?? <span className="italic text-slate-300">—</span>}
                       </TableCell>
                       <TableCell>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="size-8"
-                            >
+                            <Button variant="ghost" size="icon" className="size-8">
                               <MoreHorizontal className="size-4" />
                               <span className="sr-only">Actions</span>
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem
-                              onClick={() => {
-                                setEditingCategory(cat);
-                                setCategorySheetOpen(true);
-                              }}
-                            >
-                              <Pencil className="size-4 mr-2" />
-                              Edit
+                            <DropdownMenuItem onClick={() => { setEditingCategory(cat); setCategorySheetOpen(true); }}>
+                              <Pencil className="size-4 mr-2" /> Edit
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <AlertDialog>
@@ -567,19 +520,14 @@ export function InventoryClient({
                                   className="text-red-600"
                                   onSelect={(e) => e.preventDefault()}
                                 >
-                                  <Trash2 className="size-4 mr-2" />
-                                  Delete
+                                  <Trash2 className="size-4 mr-2" /> Delete
                                 </DropdownMenuItem>
                               </AlertDialogTrigger>
                               <AlertDialogContent>
                                 <AlertDialogHeader>
-                                  <AlertDialogTitle>
-                                    Delete category?
-                                  </AlertDialogTitle>
+                                  <AlertDialogTitle>Delete category?</AlertDialogTitle>
                                   <AlertDialogDescription>
-                                    This will permanently delete{" "}
-                                    <strong>{cat.name}</strong>. This action
-                                    cannot be undone.
+                                    This will permanently delete <strong>{cat.name}</strong>. This action cannot be undone.
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
@@ -611,10 +559,7 @@ export function InventoryClient({
         onOpenChange={setProductSheetOpen}
         product={editingProduct}
         categories={categories}
-        onSuccess={() => {
-          setProductSheetOpen(false);
-          fetchProducts();
-        }}
+        onSuccess={() => { setProductSheetOpen(false); fetchProducts(); }}
       />
 
       {/* Category Sheet */}
@@ -622,10 +567,7 @@ export function InventoryClient({
         open={categorySheetOpen}
         onOpenChange={setCategorySheetOpen}
         category={editingCategory}
-        onSuccess={() => {
-          setCategorySheetOpen(false);
-          fetchCategories();
-        }}
+        onSuccess={() => { setCategorySheetOpen(false); fetchCategories(); }}
       />
     </div>
   );
