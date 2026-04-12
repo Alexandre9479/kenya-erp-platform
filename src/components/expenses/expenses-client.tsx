@@ -10,10 +10,12 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  Sheet, SheetContent, SheetHeader, SheetTitle,
+  Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter,
 } from "@/components/ui/sheet";
+import { Separator } from "@/components/ui/separator";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -322,81 +324,89 @@ export default function ExpensesClient({ initialExpenses, total }: Props) {
 
       {/* New Expense Sheet */}
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-        <SheetContent className="w-full sm:max-w-md overflow-y-auto">
-          <SheetHeader>
-            <SheetTitle className="text-lg font-bold text-slate-900">Submit Expense</SheetTitle>
+        <SheetContent className="w-full sm:max-w-md flex flex-col p-0 overflow-hidden">
+          <div className="h-1.5 w-full bg-linear-to-r from-indigo-500 to-violet-600 shrink-0" />
+          <SheetHeader className="px-6 pt-5 pb-4 shrink-0">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-indigo-100">
+                <Receipt className="size-4 text-indigo-600" />
+              </div>
+              <SheetTitle className="text-slate-900 text-lg font-semibold">Submit Expense</SheetTitle>
+            </div>
+            <SheetDescription className="text-slate-500 text-sm mt-1 ml-12">
+              Record a business expense for approval.
+            </SheetDescription>
           </SheetHeader>
-          <form onSubmit={handleSubmit} className="space-y-4 mt-6">
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Description *</Label>
-              <Input
-                placeholder="e.g. Team lunch at Java House"
-                value={form.description}
-                onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-                className="h-10"
-                required
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
+          <Separator className="shrink-0" />
+          <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
+            <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Amount (KES) *</Label>
+                <Label>Description <span className="text-red-500">*</span></Label>
                 <Input
-                  type="number" min="0" step="0.01" placeholder="0.00"
-                  value={form.amount}
-                  onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
-                  className="h-10" required
+                  placeholder="e.g. Team lunch at Java House"
+                  value={form.description}
+                  onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+                  required
                 />
               </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label>Amount (KES) <span className="text-red-500">*</span></Label>
+                  <Input
+                    type="number" min="0" step="0.01" placeholder="0.00"
+                    value={form.amount}
+                    onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
+                    required
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Date <span className="text-red-500">*</span></Label>
+                  <Input
+                    type="date" value={form.expense_date}
+                    onChange={(e) => setForm((f) => ({ ...f, expense_date: e.target.value }))}
+                    required
+                  />
+                </div>
+              </div>
+
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Date *</Label>
-                <Input
-                  type="date" value={form.expense_date}
-                  onChange={(e) => setForm((f) => ({ ...f, expense_date: e.target.value }))}
-                  className="h-10" required
+                <Label>Category</Label>
+                <Select value={form.category} onValueChange={(v) => setForm((f) => ({ ...f, category: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {CATEGORIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label>Payment Method</Label>
+                <Select value={form.payment_method} onValueChange={(v) => setForm((f) => ({ ...f, payment_method: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {PAYMENT_METHODS.map((m) => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label>Notes</Label>
+                <Textarea
+                  rows={3} placeholder="Additional details..."
+                  value={form.notes}
+                  onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
+                  className="resize-none"
                 />
               </div>
             </div>
-
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Category</Label>
-              <Select value={form.category} onValueChange={(v) => setForm((f) => ({ ...f, category: v }))}>
-                <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {CATEGORIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Payment Method</Label>
-              <Select value={form.payment_method} onValueChange={(v) => setForm((f) => ({ ...f, payment_method: v }))}>
-                <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {PAYMENT_METHODS.map((m) => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Notes</Label>
-              <textarea
-                rows={3} placeholder="Additional details..."
-                value={form.notes}
-                onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
-                className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 resize-none"
-              />
-            </div>
-
-            <div className="flex gap-3 pt-2">
-              <Button type="button" variant="outline" className="flex-1" onClick={() => setSheetOpen(false)}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={submitting}
-                className="flex-1 bg-linear-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 border-0 text-white font-semibold">
+            <Separator className="shrink-0" />
+            <SheetFooter className="px-6 py-4 shrink-0 bg-slate-50 flex flex-row justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => setSheetOpen(false)}>Cancel</Button>
+              <Button type="submit" disabled={submitting} className="bg-indigo-600 hover:bg-indigo-700 text-white min-w-32">
                 {submitting ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Submitting…</> : "Submit Expense"}
               </Button>
-            </div>
+            </SheetFooter>
           </form>
         </SheetContent>
       </Sheet>
