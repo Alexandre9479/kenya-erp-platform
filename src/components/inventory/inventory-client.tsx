@@ -244,7 +244,7 @@ export function InventoryClient({
   const showingTo = Math.min(currentPage * PAGE_LIMIT, totalCount);
 
   return (
-    <div className="flex flex-col gap-6 p-6">
+    <div className="flex flex-col gap-6">
       {/* Page heading */}
       <div>
         <h1 className="text-2xl font-bold text-slate-900">Inventory</h1>

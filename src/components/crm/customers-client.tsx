@@ -199,7 +199,7 @@ export function CustomersClient({
       {/* ------------------------------------------------------------------ */}
       <div className="flex flex-col gap-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
               Customers
@@ -209,14 +209,14 @@ export function CustomersClient({
             </Badge>
           </div>
 
-          <Button onClick={openAdd} className="gap-1.5">
+          <Button onClick={openAdd} className="gap-1.5 shrink-0">
             <Plus className="size-4" />
             Add Customer
           </Button>
         </div>
 
         {/* Toolbar */}
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center gap-3">
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-slate-400 pointer-events-none" />
             <Input

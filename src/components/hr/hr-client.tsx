@@ -433,16 +433,18 @@ export function HRClient({ initialEmployees, totalCount }: HRClientProps) {
       </div>
 
       <Tabs defaultValue="employees">
-        <TabsList>
-          <TabsTrigger value="employees">
-            <Users className="h-4 w-4 mr-1.5" />
-            Employees
-          </TabsTrigger>
-          <TabsTrigger value="payroll">
-            <Calculator className="h-4 w-4 mr-1.5" />
-            Payroll
-          </TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto pb-1">
+          <TabsList className="w-max">
+            <TabsTrigger value="employees">
+              <Users className="h-4 w-4 mr-1.5" />
+              Employees
+            </TabsTrigger>
+            <TabsTrigger value="payroll">
+              <Calculator className="h-4 w-4 mr-1.5" />
+              Payroll
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         {/* ════════════════════════════════════════════════════════════════
             EMPLOYEES TAB

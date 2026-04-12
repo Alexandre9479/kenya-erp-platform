@@ -206,10 +206,12 @@ export function AccountingClient({ initialAccounts, accountCount, initialJournal
   return (
     <div className="space-y-4">
       <Tabs defaultValue="chart">
-        <TabsList>
-          <TabsTrigger value="chart"><BookOpen className="mr-1.5 h-3.5 w-3.5" />Chart of Accounts ({accCount})</TabsTrigger>
-          <TabsTrigger value="journals"><List className="mr-1.5 h-3.5 w-3.5" />Journal Entries ({jeTotal})</TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto pb-1">
+          <TabsList className="w-max">
+            <TabsTrigger value="chart"><BookOpen className="mr-1.5 h-3.5 w-3.5" />Chart of Accounts ({accCount})</TabsTrigger>
+            <TabsTrigger value="journals"><List className="mr-1.5 h-3.5 w-3.5" />Journal Entries ({jeTotal})</TabsTrigger>
+          </TabsList>
+        </div>
 
         {/* Chart of Accounts */}
         <TabsContent value="chart" className="space-y-4 mt-4">

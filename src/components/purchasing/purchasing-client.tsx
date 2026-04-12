@@ -161,10 +161,12 @@ export function PurchasingClient({ initialPOs, poCount, initialSuppliers, suppli
   return (
     <div className="space-y-4">
       <Tabs defaultValue="lpos">
-        <TabsList>
-          <TabsTrigger value="lpos"><FileText className="mr-1.5 h-3.5 w-3.5" />LPOs ({poTotal})</TabsTrigger>
-          <TabsTrigger value="suppliers"><Users className="mr-1.5 h-3.5 w-3.5" />Suppliers ({supplierTotal})</TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto pb-1">
+          <TabsList className="w-max">
+            <TabsTrigger value="lpos"><FileText className="mr-1.5 h-3.5 w-3.5" />LPOs ({poTotal})</TabsTrigger>
+            <TabsTrigger value="suppliers"><Users className="mr-1.5 h-3.5 w-3.5" />Suppliers ({supplierTotal})</TabsTrigger>
+          </TabsList>
+        </div>
 
         {/* LPOs Tab */}
         <TabsContent value="lpos" className="space-y-4 mt-4">
