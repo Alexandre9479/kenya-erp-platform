@@ -5,10 +5,11 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { Eye, EyeOff, Loader2, UserCog } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
 import {
   Select,
   SelectContent,
@@ -25,8 +26,6 @@ import {
   SheetFooter,
 } from "@/components/ui/sheet";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
 export type UserRow = {
   id: string;
   tenant_id: string | null;
@@ -41,8 +40,6 @@ export type UserRow = {
   updated_at: string;
 };
 
-// ─── Constants ────────────────────────────────────────────────────────────────
-
 const roleOptions = [
   { value: "tenant_admin", label: "Admin" },
   { value: "accountant", label: "Accountant" },
@@ -53,21 +50,11 @@ const roleOptions = [
   { value: "viewer", label: "Viewer" },
 ] as const;
 
-// ─── Schema ───────────────────────────────────────────────────────────────────
-
 const baseSchema = z.object({
   full_name: z.string().min(2, "Full name must be at least 2 characters"),
   email: z.email("Please enter a valid email address"),
   phone: z.string().optional().nullable(),
-  role: z.enum([
-    "tenant_admin",
-    "accountant",
-    "sales",
-    "purchasing",
-    "warehouse",
-    "hr",
-    "viewer",
-  ]),
+  role: z.enum(["tenant_admin", "accountant", "sales", "purchasing", "warehouse", "hr", "viewer"]),
 });
 
 const createSchema = baseSchema.extend({
@@ -75,42 +62,27 @@ const createSchema = baseSchema.extend({
 });
 
 const editSchema = baseSchema.extend({
-  password: z
-    .string()
-    .optional()
-    .refine((val) => !val || val.length >= 8, {
-      message: "Password must be at least 8 characters",
-    }),
+  password: z.string().optional().refine((val) => !val || val.length >= 8, {
+    message: "Password must be at least 8 characters",
+  }),
 });
 
 type CreateFormValues = z.infer<typeof createSchema>;
 type EditFormValues = z.infer<typeof editSchema>;
 type FormValues = CreateFormValues | EditFormValues;
 
-// ─── Field helper ─────────────────────────────────────────────────────────────
-
-function Field({
-  label,
-  error,
-  children,
-  hint,
-}: {
-  label: string;
-  error?: string;
-  children: React.ReactNode;
-  hint?: string;
+function Field({ label, error, children, hint }: {
+  label: string; error?: string; children: React.ReactNode; hint?: string;
 }) {
   return (
     <div className="space-y-1.5">
       <Label>{label}</Label>
       {children}
       {hint && !error && <p className="text-xs text-slate-500">{hint}</p>}
-      {error && <p className="text-xs text-destructive">{error}</p>}
+      {error && <p className="text-xs text-red-500">{error}</p>}
     </div>
   );
 }
-
-// ─── Props ────────────────────────────────────────────────────────────────────
 
 interface UserFormProps {
   open: boolean;
@@ -118,8 +90,6 @@ interface UserFormProps {
   user?: UserRow;
   onSuccess: () => void;
 }
-
-// ─── Component ────────────────────────────────────────────────────────────────
 
 export function UserForm({ open, onOpenChange, user, onSuccess }: UserFormProps) {
   const isEdit = !!user;
@@ -149,10 +119,7 @@ export function UserForm({ open, onOpenChange, user, onSuccess }: UserFormProps)
   const roleValue = watch("role");
 
   const handleOpenChange = (open: boolean) => {
-    if (!open) {
-      reset();
-      setShowPassword(false);
-    }
+    if (!open) { reset(); setShowPassword(false); }
     onOpenChange(open);
   };
 
@@ -165,30 +132,17 @@ export function UserForm({ open, onOpenChange, user, onSuccess }: UserFormProps)
         phone: values.phone || null,
         role: values.role,
       };
-
-      if ("password" in values && values.password) {
-        payload.password = values.password;
-      }
+      if ("password" in values && values.password) payload.password = values.password;
 
       const url = isEdit ? `/api/users/${user.id}` : "/api/users";
       const method = isEdit ? "PATCH" : "POST";
-
-      const res = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
+      const res = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       const json = await res.json() as { error?: string };
-
       if (!res.ok) {
         toast.error(json.error ?? `Failed to ${isEdit ? "update" : "create"} user.`);
         return;
       }
-
-      toast.success(
-        isEdit ? "User updated successfully." : "User created successfully."
-      );
+      toast.success(isEdit ? "User updated successfully." : "User created successfully.");
       handleOpenChange(false);
       onSuccess();
     } catch {
@@ -200,129 +154,90 @@ export function UserForm({ open, onOpenChange, user, onSuccess }: UserFormProps)
 
   return (
     <Sheet open={open} onOpenChange={handleOpenChange}>
-      <SheetContent className="w-full sm:max-w-md overflow-y-auto">
-        <SheetHeader>
-          <SheetTitle>{isEdit ? "Edit User" : "Add User"}</SheetTitle>
-          <SheetDescription>
-            {isEdit
-              ? "Update the user's details and role."
-              : "Create a new user account for your team."}
+      <SheetContent className="w-full sm:max-w-md flex flex-col p-0 overflow-hidden">
+        <div className="h-1.5 w-full bg-linear-to-r from-indigo-500 to-violet-600 shrink-0" />
+
+        <SheetHeader className="px-6 pt-5 pb-4 shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-indigo-100">
+              <UserCog className="size-4 text-indigo-600" />
+            </div>
+            <SheetTitle className="text-slate-900 text-lg font-semibold">
+              {isEdit ? "Edit User" : "Add User"}
+            </SheetTitle>
+          </div>
+          <SheetDescription className="text-slate-500 text-sm mt-1 ml-12">
+            {isEdit ? "Update the user's details and role." : "Create a new user account for your team."}
           </SheetDescription>
         </SheetHeader>
 
-        <form
-          onSubmit={handleSubmit(onSubmit)}
-          className="flex flex-col gap-4 py-6"
-        >
-          <Field label="Full Name" error={errors.full_name?.message}>
-            <Input
-              {...register("full_name")}
-              placeholder="Jane Muthoni"
-              className={errors.full_name ? "border-destructive" : ""}
-              disabled={isSubmitting}
-            />
-          </Field>
+        <Separator className="shrink-0" />
 
-          <Field label="Email Address" error={errors.email?.message}>
-            <Input
-              {...register("email")}
-              type="email"
-              placeholder="jane@company.co.ke"
-              className={errors.email ? "border-destructive" : ""}
-              disabled={isSubmitting || isEdit}
-              readOnly={isEdit}
-            />
-          </Field>
+        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden">
+          <div className="flex-1 overflow-y-auto px-6 py-5">
+            <div className="flex flex-col gap-5">
+              <Field label="Full Name" error={errors.full_name?.message}>
+                <Input {...register("full_name")} placeholder="Jane Muthoni" className={errors.full_name ? "border-red-400" : ""} disabled={isSubmitting} />
+              </Field>
 
-          <Field label="Phone" error={errors.phone?.message}>
-            <Input
-              {...register("phone")}
-              placeholder="+254 700 000 000"
-              disabled={isSubmitting}
-            />
-          </Field>
+              <Field label="Email Address" error={errors.email?.message}>
+                <Input {...register("email")} type="email" placeholder="jane@company.co.ke" className={errors.email ? "border-red-400" : ""} disabled={isSubmitting || isEdit} readOnly={isEdit} />
+              </Field>
 
-          <Field label="Role" error={errors.role?.message}>
-            <Select
-              value={roleValue}
-              onValueChange={(val) =>
-                setValue("role", val as EditFormValues["role"], {
-                  shouldValidate: true,
-                })
-              }
-              disabled={isSubmitting}
-            >
-              <SelectTrigger className={errors.role ? "border-destructive" : ""}>
-                <SelectValue placeholder="Select a role" />
-              </SelectTrigger>
-              <SelectContent>
-                {roleOptions.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </Field>
+              <Field label="Phone" error={errors.phone?.message}>
+                <Input {...register("phone")} placeholder="+254 700 000 000" disabled={isSubmitting} />
+              </Field>
 
-          <Field
-            label={isEdit ? "New Password" : "Password"}
-            error={
-              "password" in errors
-                ? (errors.password as { message?: string } | undefined)?.message
-                : undefined
-            }
-            hint={isEdit ? "Leave blank to keep the current password." : undefined}
-          >
-            <div className="relative">
-              <Input
-                {...register("password")}
-                type={showPassword ? "text" : "password"}
-                placeholder={isEdit ? "Leave blank to keep current" : "Min. 8 characters"}
-                className={
-                  "password" in errors && errors.password
-                    ? "border-destructive pr-10"
-                    : "pr-10"
-                }
-                disabled={isSubmitting}
-              />
-              <button
-                type="button"
-                tabIndex={-1}
-                aria-label={showPassword ? "Hide password" : "Show password"}
-                onClick={() => setShowPassword((v) => !v)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+              <Field label="Role" error={errors.role?.message}>
+                <Select value={roleValue} onValueChange={(val) => setValue("role", val as EditFormValues["role"], { shouldValidate: true })} disabled={isSubmitting}>
+                  <SelectTrigger className={errors.role ? "border-red-400" : ""}>
+                    <SelectValue placeholder="Select a role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {roleOptions.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Field>
+
+              <Field
+                label={isEdit ? "New Password" : "Password"}
+                error={"password" in errors ? (errors.password as { message?: string } | undefined)?.message : undefined}
+                hint={isEdit ? "Leave blank to keep the current password." : undefined}
               >
-                {showPassword ? (
-                  <EyeOff className="h-4 w-4" />
-                ) : (
-                  <Eye className="h-4 w-4" />
-                )}
-              </button>
+                <div className="relative">
+                  <Input
+                    {...register("password")}
+                    type={showPassword ? "text" : "password"}
+                    placeholder={isEdit ? "Leave blank to keep current" : "Min. 8 characters"}
+                    className={"password" in errors && errors.password ? "border-red-400 pr-10" : "pr-10"}
+                    disabled={isSubmitting}
+                  />
+                  <button
+                    type="button"
+                    tabIndex={-1}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    onClick={() => setShowPassword((v) => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </Field>
             </div>
-          </Field>
+          </div>
 
-          <SheetFooter className="mt-2 flex gap-2 sm:flex-row flex-col-reverse">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => handleOpenChange(false)}
-              disabled={isSubmitting}
-              className="flex-1"
-            >
+          <Separator className="shrink-0" />
+
+          <SheetFooter className="px-6 py-4 shrink-0 bg-slate-50 flex flex-row justify-end gap-2">
+            <Button type="button" variant="outline" onClick={() => handleOpenChange(false)} disabled={isSubmitting} className="flex-1">
               Cancel
             </Button>
-            <Button type="submit" disabled={isSubmitting} className="flex-1">
+            <Button type="submit" disabled={isSubmitting} className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white">
               {isSubmitting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {isEdit ? "Saving…" : "Creating…"}
-                </>
-              ) : isEdit ? (
-                "Save Changes"
-              ) : (
-                "Create User"
-              )}
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{isEdit ? "Saving…" : "Creating…"}</>
+              ) : isEdit ? "Save Changes" : "Create User"}
             </Button>
           </SheetFooter>
         </form>
