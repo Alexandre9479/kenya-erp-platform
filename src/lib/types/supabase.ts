@@ -342,6 +342,171 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["accounts"]["Insert"]>;
         Relationships: [];
       };
+      invoice_items: {
+        Row: {
+          id: string;
+          tenant_id: string;
+          invoice_id: string;
+          product_id: string | null;
+          description: string;
+          quantity: number;
+          unit_price: number;
+          vat_rate: number;
+          vat_amount: number;
+          line_total: number;
+          sort_order: number;
+        };
+        Insert: Omit<Database["public"]["Tables"]["invoice_items"]["Row"], "id"> &
+          Partial<Pick<Database["public"]["Tables"]["invoice_items"]["Row"], "id">>;
+        Update: Partial<Database["public"]["Tables"]["invoice_items"]["Insert"]>;
+        Relationships: [];
+      };
+      purchase_orders: {
+        Row: {
+          id: string;
+          tenant_id: string;
+          lpo_number: string;
+          supplier_id: string;
+          issue_date: string;
+          expected_date: string | null;
+          status: string;
+          subtotal: number;
+          tax_amount: number;
+          total_amount: number;
+          notes: string | null;
+          terms: string | null;
+          approved_by: string | null;
+          created_by: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Omit<
+          Database["public"]["Tables"]["purchase_orders"]["Row"],
+          "id" | "created_at" | "updated_at"
+        > &
+          Partial<
+            Pick<
+              Database["public"]["Tables"]["purchase_orders"]["Row"],
+              "id" | "created_at" | "updated_at"
+            >
+          >;
+        Update: Partial<
+          Database["public"]["Tables"]["purchase_orders"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      purchase_order_items: {
+        Row: {
+          id: string;
+          tenant_id: string;
+          po_id: string;
+          product_id: string | null;
+          description: string;
+          quantity: number;
+          unit_price: number;
+          vat_rate: number;
+          vat_amount: number;
+          line_total: number;
+          sort_order: number;
+        };
+        Insert: Omit<
+          Database["public"]["Tables"]["purchase_order_items"]["Row"],
+          "id"
+        > &
+          Partial<
+            Pick<
+              Database["public"]["Tables"]["purchase_order_items"]["Row"],
+              "id"
+            >
+          >;
+        Update: Partial<
+          Database["public"]["Tables"]["purchase_order_items"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      stock_movements: {
+        Row: {
+          id: string;
+          tenant_id: string;
+          product_id: string;
+          warehouse_id: string;
+          type: string;
+          quantity: number;
+          unit_cost: number | null;
+          reference_type: string | null;
+          reference_id: string | null;
+          notes: string | null;
+          created_by: string;
+          created_at: string;
+        };
+        Insert: Omit<
+          Database["public"]["Tables"]["stock_movements"]["Row"],
+          "id" | "created_at"
+        > &
+          Partial<
+            Pick<
+              Database["public"]["Tables"]["stock_movements"]["Row"],
+              "id" | "created_at"
+            >
+          >;
+        Update: Partial<
+          Database["public"]["Tables"]["stock_movements"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      journal_entries: {
+        Row: {
+          id: string;
+          tenant_id: string;
+          entry_number: string;
+          reference_type: string | null;
+          reference_id: string | null;
+          description: string;
+          entry_date: string;
+          is_posted: boolean;
+          created_by: string;
+          created_at: string;
+        };
+        Insert: Omit<
+          Database["public"]["Tables"]["journal_entries"]["Row"],
+          "id" | "created_at"
+        > &
+          Partial<
+            Pick<
+              Database["public"]["Tables"]["journal_entries"]["Row"],
+              "id" | "created_at"
+            >
+          >;
+        Update: Partial<
+          Database["public"]["Tables"]["journal_entries"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      journal_entry_lines: {
+        Row: {
+          id: string;
+          tenant_id: string;
+          entry_id: string;
+          account_id: string;
+          debit: number;
+          credit: number;
+          description: string | null;
+        };
+        Insert: Omit<
+          Database["public"]["Tables"]["journal_entry_lines"]["Row"],
+          "id"
+        > &
+          Partial<
+            Pick<
+              Database["public"]["Tables"]["journal_entry_lines"]["Row"],
+              "id"
+            >
+          >;
+        Update: Partial<
+          Database["public"]["Tables"]["journal_entry_lines"]["Insert"]
+        >;
+        Relationships: [];
+      };
     };
     Views: {};
     Functions: {
