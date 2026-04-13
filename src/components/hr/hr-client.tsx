@@ -172,7 +172,7 @@ function SummaryCard({
 }) {
   return (
     <div className={`rounded-xl p-4 border ${highlight ? "border-blue-200 bg-blue-50" : "border-slate-200 bg-white"} shadow-sm`}>
-      <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">{title}</p>
+      <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap mb-1">{title}</p>
       <p className={`text-base font-bold ${highlight ? "text-blue-700" : "text-slate-900"}`}>
         {formatKES(amount)}
       </p>
@@ -505,7 +505,7 @@ export function HRClient({ initialEmployees, totalCount }: HRClientProps) {
       {/* ── Module Hero Strip ────────────────────────────────────────────── */}
       <div className="rounded-2xl overflow-hidden shadow-sm border border-blue-100">
         {/* Gradient top */}
-        <div className="relative h-24 bg-linear-to-r from-blue-500 to-indigo-600 px-6 flex items-center justify-between overflow-hidden">
+        <div className="relative bg-linear-to-r from-blue-500 to-indigo-600 px-4 py-4 sm:px-6 sm:py-0 sm:h-24 flex flex-col sm:flex-row sm:items-center gap-3 sm:justify-between overflow-hidden">
           {/* Decorative blobs */}
           <div className="absolute -top-6 -right-6 w-32 h-32 rounded-full bg-white/10" />
           <div className="absolute top-4 right-16 w-16 h-16 rounded-full bg-white/5" />
@@ -515,11 +515,12 @@ export function HRClient({ initialEmployees, totalCount }: HRClientProps) {
             </div>
             <div>
               <h1 className="text-xl font-bold text-white">HR &amp; Payroll</h1>
-              <p className="text-sm text-white/70">Manage employees and run monthly payroll</p>
+              <p className="text-sm text-white/70 hidden sm:block">Manage employees and run monthly payroll</p>
             </div>
           </div>
           <Button
             onClick={openAdd}
+            size="sm"
             className="bg-white text-blue-700 hover:bg-blue-50 font-semibold shadow-sm shrink-0"
           >
             <Plus className="h-4 w-4 mr-1.5" />
@@ -637,18 +638,18 @@ export function HRClient({ initialEmployees, totalCount }: HRClientProps) {
           </div>
 
           {/* Table */}
-          <div className="rounded-xl border border-slate-200 overflow-hidden bg-white shadow-sm">
+          <div className="rounded-xl border border-slate-200 overflow-x-auto bg-white shadow-sm">
             <Table>
               <TableHeader>
                 <TableRow className="bg-slate-50 border-y border-slate-200">
-                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Emp No</TableHead>
-                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Name</TableHead>
-                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Department</TableHead>
-                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Designation</TableHead>
-                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Type</TableHead>
-                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Basic Salary</TableHead>
-                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</TableHead>
-                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Actions</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Emp No</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Name</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Department</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Designation</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Type</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap text-right">Basic Salary</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Status</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -858,14 +859,14 @@ export function HRClient({ initialEmployees, totalCount }: HRClientProps) {
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-slate-50 border-y border-slate-200">
-                        <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Employee</TableHead>
-                        <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Gross</TableHead>
-                        <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">PAYE</TableHead>
-                        <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">NHIF/SHIF</TableHead>
-                        <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">NSSF (Emp)</TableHead>
-                        <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">NSSF (Emplr)</TableHead>
-                        <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Net Pay</TableHead>
-                        <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider text-center w-20">Payslip</TableHead>
+                        <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Employee</TableHead>
+                        <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap text-right">Gross</TableHead>
+                        <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap text-right">PAYE</TableHead>
+                        <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap text-right">NHIF/SHIF</TableHead>
+                        <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap text-right">NSSF (Emp)</TableHead>
+                        <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap text-right">NSSF (Emplr)</TableHead>
+                        <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap text-right">Net Pay</TableHead>
+                        <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap text-center w-20">Payslip</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -952,17 +953,17 @@ export function HRClient({ initialEmployees, totalCount }: HRClientProps) {
           </div>
 
           {/* Leave Table */}
-          <div className="rounded-xl border border-slate-200 overflow-hidden bg-white shadow-sm">
+          <div className="rounded-xl border border-slate-200 overflow-x-auto bg-white shadow-sm">
             <Table>
               <TableHeader>
                 <TableRow className="bg-slate-50 border-y border-slate-200">
-                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Employee</TableHead>
-                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Type</TableHead>
-                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">From</TableHead>
-                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">To</TableHead>
-                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Days</TableHead>
-                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</TableHead>
-                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Actions</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Employee</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Type</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">From</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">To</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap text-right">Days</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Status</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

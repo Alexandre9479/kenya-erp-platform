@@ -488,7 +488,7 @@ export function SalesClient({ initialInvoices, invoiceCount, initialQuotes, quot
     <div className="space-y-6">
       {/* ── Module Hero Strip ────────────────────────────────── */}
       <div className="rounded-2xl overflow-hidden shadow-sm border border-emerald-100">
-        <div className="relative h-24 bg-linear-to-r from-emerald-500 to-teal-600 px-6 flex items-center justify-between overflow-hidden">
+        <div className="relative bg-linear-to-r from-emerald-500 to-teal-600 px-4 py-4 sm:px-6 sm:py-0 sm:h-24 flex flex-col sm:flex-row sm:items-center gap-3 sm:justify-between overflow-hidden">
           <div className="absolute -top-6 -right-6 w-32 h-32 rounded-full bg-white/10" />
           <div className="absolute top-4 right-16 w-16 h-16 rounded-full bg-white/5" />
           <div className="flex items-center gap-4">
@@ -497,17 +497,17 @@ export function SalesClient({ initialInvoices, invoiceCount, initialQuotes, quot
             </div>
             <div>
               <h1 className="text-xl font-bold text-white">Sales &amp; Invoices</h1>
-              <p className="text-sm text-white/70">Quotes, invoices, payments &amp; customer statements</p>
+              <p className="text-sm text-white/70 hidden sm:block">Quotes, invoices, payments &amp; customer statements</p>
             </div>
           </div>
           <div className="flex gap-2 shrink-0">
-            <Button asChild variant="outline" className="bg-white/20 border-white/30 text-white hover:bg-white/30 font-semibold shadow-sm">
+            <Button asChild variant="outline" size="sm" className="bg-white/20 border-white/30 text-white hover:bg-white/30 font-semibold shadow-sm">
               <Link href="/sales/quotes/new">
                 <ClipboardList className="h-4 w-4 mr-1.5" />
                 New Quote
               </Link>
             </Button>
-            <Button asChild className="bg-white text-emerald-700 hover:bg-emerald-50 font-semibold shadow-sm">
+            <Button asChild size="sm" className="bg-white text-emerald-700 hover:bg-emerald-50 font-semibold shadow-sm">
               <Link href="/sales/new">
                 <Plus className="h-4 w-4 mr-1.5" />
                 New Invoice
@@ -537,28 +537,30 @@ export function SalesClient({ initialInvoices, invoiceCount, initialQuotes, quot
 
       {/* ── Tabs ─────────────────────────────────────────────── */}
       <Tabs defaultValue={defaultTab}>
-        <TabsList className="bg-slate-100 p-1 rounded-xl h-auto">
-          <TabsTrigger value="invoices" className="gap-1.5 data-[state=active]:bg-white text-sm">
-            <FileText className="size-3.5" />Invoices
-          </TabsTrigger>
-          <TabsTrigger value="quotes" className="gap-1.5 data-[state=active]:bg-white text-sm">
-            <ClipboardList className="size-3.5" />Quotations
-          </TabsTrigger>
-          <TabsTrigger
-            value="delivery_notes"
-            className="gap-1.5 data-[state=active]:bg-white text-sm"
-            onClick={() => { if (!dnFetched.current) { dnFetched.current = true; fetchDeliveryNotes(); } }}
-          >
-            <Truck className="size-3.5" />Delivery Notes
-          </TabsTrigger>
-          <TabsTrigger
-            value="credit_notes"
-            className="gap-1.5 data-[state=active]:bg-white text-sm"
-            onClick={() => { if (!cnFetched.current) { cnFetched.current = true; fetchCreditNotes(); } }}
-          >
-            <ReceiptText className="size-3.5" />Credit Notes
-          </TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto -mx-1 px-1 pb-1">
+          <TabsList className="bg-slate-100 p-1 rounded-xl h-auto w-max min-w-full">
+            <TabsTrigger value="invoices" className="gap-1.5 data-[state=active]:bg-white text-xs sm:text-sm">
+              <FileText className="size-3.5" />Invoices
+            </TabsTrigger>
+            <TabsTrigger value="quotes" className="gap-1.5 data-[state=active]:bg-white text-xs sm:text-sm">
+              <ClipboardList className="size-3.5" />Quotations
+            </TabsTrigger>
+            <TabsTrigger
+              value="delivery_notes"
+              className="gap-1.5 data-[state=active]:bg-white text-xs sm:text-sm"
+              onClick={() => { if (!dnFetched.current) { dnFetched.current = true; fetchDeliveryNotes(); } }}
+            >
+              <Truck className="size-3.5" /><span className="hidden sm:inline">Delivery</span> DN
+            </TabsTrigger>
+            <TabsTrigger
+              value="credit_notes"
+              className="gap-1.5 data-[state=active]:bg-white text-xs sm:text-sm"
+              onClick={() => { if (!cnFetched.current) { cnFetched.current = true; fetchCreditNotes(); } }}
+            >
+              <ReceiptText className="size-3.5" /><span className="hidden sm:inline">Credit</span> CN
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         {/* ══════════ INVOICES TAB ══════════ */}
         <TabsContent value="invoices" className="mt-4 space-y-4">
@@ -604,7 +606,7 @@ export function SalesClient({ initialInvoices, invoiceCount, initialQuotes, quot
 
           {/* Search / Filter */}
           <div className="bg-white rounded-xl border border-slate-200 p-3 flex flex-col sm:flex-row gap-3">
-            <div className="relative flex-1 max-w-xs">
+            <div className="relative flex-1 sm:max-w-xs">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <Input
                 placeholder="Search invoice number…"
@@ -625,18 +627,18 @@ export function SalesClient({ initialInvoices, invoiceCount, initialQuotes, quot
           </div>
 
           {/* Invoice Table */}
-          <div className="rounded-xl border border-slate-200 overflow-hidden bg-white shadow-sm">
+          <div className="rounded-xl border border-slate-200 overflow-x-auto bg-white shadow-sm">
             <Table>
               <TableHeader>
                 <TableRow className="bg-slate-50 border-y border-slate-200">
-                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Invoice #</TableHead>
-                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Customer</TableHead>
-                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Issue Date</TableHead>
-                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Due Date</TableHead>
-                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</TableHead>
-                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Amount</TableHead>
-                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Paid</TableHead>
-                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Balance</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Invoice #</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Customer</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Issue Date</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Due Date</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Status</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap text-right">Amount</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap text-right">Paid</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap text-right">Balance</TableHead>
                   <TableHead className="w-10" />
                 </TableRow>
               </TableHeader>
@@ -748,7 +750,7 @@ export function SalesClient({ initialInvoices, invoiceCount, initialQuotes, quot
         <TabsContent value="quotes" className="mt-4 space-y-4">
           {/* Search / Filter */}
           <div className="bg-white rounded-xl border border-slate-200 p-3 flex flex-col sm:flex-row gap-3">
-            <div className="relative flex-1 max-w-xs">
+            <div className="relative flex-1 sm:max-w-xs">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <Input
                 placeholder="Search quote number…"
@@ -769,16 +771,16 @@ export function SalesClient({ initialInvoices, invoiceCount, initialQuotes, quot
           </div>
 
           {/* Quotes Table */}
-          <div className="rounded-xl border border-slate-200 overflow-hidden bg-white shadow-sm">
+          <div className="rounded-xl border border-slate-200 overflow-x-auto bg-white shadow-sm">
             <Table>
               <TableHeader>
                 <TableRow className="bg-slate-50 border-y border-slate-200">
-                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Quote #</TableHead>
-                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Customer</TableHead>
-                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Issue Date</TableHead>
-                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Valid Until</TableHead>
-                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</TableHead>
-                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Amount</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Quote #</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Customer</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Issue Date</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Valid Until</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Status</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap text-right">Amount</TableHead>
                   <TableHead className="w-10" />
                 </TableRow>
               </TableHeader>
@@ -892,7 +894,7 @@ export function SalesClient({ initialInvoices, invoiceCount, initialQuotes, quot
         {/* ══════════ DELIVERY NOTES TAB ══════════ */}
         <TabsContent value="delivery_notes" className="mt-4 space-y-4">
           <div className="bg-white rounded-xl border border-slate-200 p-3 flex flex-col sm:flex-row gap-3 items-center">
-            <div className="relative flex-1 max-w-xs">
+            <div className="relative flex-1 sm:max-w-xs">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <Input
                 placeholder="Search DN number…"
@@ -915,16 +917,16 @@ export function SalesClient({ initialInvoices, invoiceCount, initialQuotes, quot
             </Button>
           </div>
 
-          <div className="rounded-xl border border-slate-200 overflow-hidden bg-white shadow-sm">
+          <div className="rounded-xl border border-slate-200 overflow-x-auto bg-white shadow-sm">
             <Table>
               <TableHeader>
                 <TableRow className="bg-slate-50 border-y border-slate-200">
-                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">DN #</TableHead>
-                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Invoice</TableHead>
-                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Customer</TableHead>
-                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Delivery Date</TableHead>
-                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Driver</TableHead>
-                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">DN #</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Invoice</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Customer</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Delivery Date</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Driver</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Status</TableHead>
                   <TableHead className="w-10" />
                 </TableRow>
               </TableHeader>
@@ -1009,7 +1011,7 @@ export function SalesClient({ initialInvoices, invoiceCount, initialQuotes, quot
         <TabsContent value="credit_notes" className="mt-4 space-y-4">
           {/* Search / Filter */}
           <div className="bg-white rounded-xl border border-slate-200 p-3 flex flex-col sm:flex-row gap-3 items-center">
-            <div className="relative flex-1 max-w-xs">
+            <div className="relative flex-1 sm:max-w-xs">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <Input
                 placeholder="Search credit note…"
@@ -1033,17 +1035,17 @@ export function SalesClient({ initialInvoices, invoiceCount, initialQuotes, quot
           </div>
 
           {/* Credit Notes Table */}
-          <div className="rounded-xl border border-slate-200 overflow-hidden bg-white shadow-sm">
+          <div className="rounded-xl border border-slate-200 overflow-x-auto bg-white shadow-sm">
             <Table>
               <TableHeader>
                 <TableRow className="bg-slate-50 border-y border-slate-200">
-                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">CN #</TableHead>
-                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Invoice</TableHead>
-                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Customer</TableHead>
-                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Date</TableHead>
-                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Reason</TableHead>
-                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</TableHead>
-                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Amount</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">CN #</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Invoice</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Customer</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Date</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Reason</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Status</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap text-right">Amount</TableHead>
                   <TableHead className="w-10" />
                 </TableRow>
               </TableHeader>

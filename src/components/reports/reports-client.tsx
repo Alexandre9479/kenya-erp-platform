@@ -252,36 +252,38 @@ export function ReportsClient() {
           </div>
 
           {/* Date filter row inside hero */}
-          <div className="flex flex-wrap items-end gap-3 bg-white/10 backdrop-blur-sm rounded-xl p-4">
-            <Calendar className="size-4 text-indigo-200 mt-auto mb-1" />
-            <div className="space-y-1">
+          <div className="flex flex-wrap items-end gap-2 sm:gap-3 bg-white/10 backdrop-blur-sm rounded-xl p-3 sm:p-4">
+            <Calendar className="size-4 text-indigo-200 mt-auto mb-1 hidden sm:block" />
+            <div className="space-y-1 flex-1 min-w-28 sm:flex-none">
               <Label className="text-indigo-100 text-xs font-medium">From</Label>
               <Input
                 type="date"
                 value={from}
                 onChange={(e) => setFrom(e.target.value)}
-                className="w-36 bg-white/20 border-white/30 text-white placeholder:text-indigo-200 scheme-dark h-8 text-sm"
+                className="w-full sm:w-36 bg-white/20 border-white/30 text-white placeholder:text-indigo-200 scheme-dark h-8 text-sm"
               />
             </div>
-            <div className="space-y-1">
+            <div className="space-y-1 flex-1 min-w-28 sm:flex-none">
               <Label className="text-indigo-100 text-xs font-medium">To</Label>
               <Input
                 type="date"
                 value={to}
                 onChange={(e) => setTo(e.target.value)}
-                className="w-36 bg-white/20 border-white/30 text-white placeholder:text-indigo-200 scheme-dark h-8 text-sm"
+                className="w-full sm:w-36 bg-white/20 border-white/30 text-white placeholder:text-indigo-200 scheme-dark h-8 text-sm"
               />
             </div>
             <Button
               onClick={handleGenerate}
               disabled={isLoading}
+              size="sm"
               className="bg-white text-indigo-700 hover:bg-indigo-50 font-semibold shadow-md h-8 text-sm"
             >
-              {isLoading ? "Loading…" : "Generate Report"}
+              {isLoading ? "Loading…" : "Generate"}
             </Button>
             {activeTab !== "dashboard" && (
               <Button
                 variant="ghost"
+                size="sm"
                 onClick={() => window.print()}
                 className="text-white hover:bg-white/20 h-8 text-sm gap-1.5"
               >
@@ -294,7 +296,8 @@ export function ReportsClient() {
 
       {/* ── Tabs Navigation ──────────────────────────────────── */}
       <Tabs value={activeTab} onValueChange={handleTabChange}>
-        <TabsList className="no-print flex flex-wrap h-auto gap-1 bg-slate-100 p-1 rounded-xl">
+        <div className="overflow-x-auto -mx-1 px-1 pb-1 no-print">
+        <TabsList className="flex h-auto gap-1 bg-slate-100 p-1 rounded-xl w-max min-w-full">
           <TabsTrigger value="dashboard" className="gap-1.5 text-xs sm:text-sm data-[state=active]:bg-white">
             <BarChart3 className="size-3.5" />Dashboard
           </TabsTrigger>
@@ -317,6 +320,7 @@ export function ReportsClient() {
             <Landmark className="size-3.5" />VAT Return
           </TabsTrigger>
         </TabsList>
+        </div>
 
         {/* ══════════════════════════════════════════════════════ */}
         {/* DASHBOARD TAB                                         */}
@@ -336,7 +340,7 @@ export function ReportsClient() {
               : kpis.map((kpi) => {
                   const { Icon } = kpi;
                   return (
-                    <Card key={kpi.label} className="border-slate-200 shadow-sm overflow-hidden">
+                    <Card key={kpi.label} className="border-slate-200 shadow-sm overflow-x-auto">
                       <div className={`h-1 w-full bg-linear-to-r ${kpi.from} ${kpi.to}`} />
                       <CardContent className="pt-4">
                         <div className={`inline-flex p-2 rounded-xl mb-2 bg-linear-to-br ${kpi.from} ${kpi.to}`}>
@@ -351,7 +355,7 @@ export function ReportsClient() {
           </div>
 
           {/* Revenue Chart */}
-          <Card className="border-slate-200 shadow-sm overflow-hidden">
+          <Card className="border-slate-200 shadow-sm overflow-x-auto">
             <div className="h-1 w-full bg-linear-to-r from-indigo-500 via-violet-500 to-indigo-600" />
             <CardHeader>
               <CardTitle className="text-base font-semibold text-slate-800 flex items-center gap-2">
@@ -402,7 +406,7 @@ export function ReportsClient() {
                 { label: "Paid Invoices", value: summaryData.paidCount, Icon: CheckCircle2, color: "text-emerald-600", bar: "from-emerald-500 to-teal-500" },
                 { label: "Overdue Invoices", value: summaryData.overdueCount, Icon: Clock, color: "text-red-600", bar: "from-red-500 to-rose-500" },
               ].map(({ label, value, Icon, color, bar }) => (
-                <Card key={label} className="border-slate-200 shadow-sm overflow-hidden">
+                <Card key={label} className="border-slate-200 shadow-sm overflow-x-auto">
                   <div className={`h-1 w-full bg-linear-to-r ${bar}`} />
                   <CardContent className="pt-4 flex items-center gap-4">
                     <div className={`inline-flex p-3 rounded-xl bg-linear-to-br ${bar}`}>
@@ -427,7 +431,7 @@ export function ReportsClient() {
             {isLoading && !trialBalance ? (
               <ReportSkeleton />
             ) : trialBalance ? (
-              <Card className="border-slate-200 shadow-sm overflow-hidden">
+              <Card className="border-slate-200 shadow-sm overflow-x-auto">
                 <div className="h-1 w-full bg-linear-to-r from-indigo-500 to-violet-500" />
                 <CardHeader className="pb-2">
                   <CardTitle className="text-lg font-bold text-slate-900 flex items-center gap-2">
@@ -436,11 +440,11 @@ export function ReportsClient() {
                   </CardTitle>
                   <p className="text-sm text-slate-500">As at {dateStr(trialBalance.asAt)}</p>
                 </CardHeader>
-                <CardContent className="p-0">
+                <CardContent className="p-0 overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-slate-50">
-                        <TableHead className="font-semibold text-slate-600 w-20">Code</TableHead>
+                        <TableHead className="font-semibold text-slate-600 w-20 whitespace-nowrap">Code</TableHead>
                         <TableHead className="font-semibold text-slate-600">Account Name</TableHead>
                         <TableHead className="font-semibold text-slate-600">Type</TableHead>
                         <TableHead className="font-semibold text-slate-600 text-right">Debit (KES)</TableHead>
@@ -499,7 +503,7 @@ export function ReportsClient() {
             {isLoading && !plData ? (
               <ReportSkeleton />
             ) : plData ? (
-              <Card className="border-slate-200 shadow-sm overflow-hidden">
+              <Card className="border-slate-200 shadow-sm overflow-x-auto">
                 <div className="h-1 w-full bg-linear-to-r from-emerald-500 to-teal-500" />
                 <CardHeader className="pb-2">
                   <CardTitle className="text-lg font-bold text-slate-900 flex items-center gap-2">
@@ -519,7 +523,7 @@ export function ReportsClient() {
                     <Table>
                       <TableHeader>
                         <TableRow className="bg-emerald-50/50">
-                          <TableHead className="font-semibold text-slate-600 w-20">Code</TableHead>
+                          <TableHead className="font-semibold text-slate-600 w-20 whitespace-nowrap">Code</TableHead>
                           <TableHead className="font-semibold text-slate-600">Account</TableHead>
                           <TableHead className="font-semibold text-slate-600 text-right">Amount (KES)</TableHead>
                         </TableRow>
@@ -553,7 +557,7 @@ export function ReportsClient() {
                     <Table>
                       <TableHeader>
                         <TableRow className="bg-red-50/50">
-                          <TableHead className="font-semibold text-slate-600 w-20">Code</TableHead>
+                          <TableHead className="font-semibold text-slate-600 w-20 whitespace-nowrap">Code</TableHead>
                           <TableHead className="font-semibold text-slate-600">Account</TableHead>
                           <TableHead className="font-semibold text-slate-600 text-right">Amount (KES)</TableHead>
                         </TableRow>
@@ -609,7 +613,7 @@ export function ReportsClient() {
             {isLoading && !bsData ? (
               <ReportSkeleton />
             ) : bsData ? (
-              <Card className="border-slate-200 shadow-sm overflow-hidden">
+              <Card className="border-slate-200 shadow-sm overflow-x-auto">
                 <div className="h-1 w-full bg-linear-to-r from-blue-500 to-indigo-500" />
                 <CardHeader className="pb-2">
                   <CardTitle className="text-lg font-bold text-slate-900 flex items-center gap-2">
@@ -643,7 +647,7 @@ export function ReportsClient() {
                     <Table>
                       <TableHeader>
                         <TableRow className="bg-violet-50/50">
-                          <TableHead className="font-semibold text-slate-600 w-20">Code</TableHead>
+                          <TableHead className="font-semibold text-slate-600 w-20 whitespace-nowrap">Code</TableHead>
                           <TableHead className="font-semibold text-slate-600">Account</TableHead>
                           <TableHead className="font-semibold text-slate-600 text-right">Amount (KES)</TableHead>
                         </TableRow>
@@ -714,7 +718,7 @@ export function ReportsClient() {
             {isLoading && !arAging ? (
               <ReportSkeleton />
             ) : arAging ? (
-              <Card className="border-slate-200 shadow-sm overflow-hidden">
+              <Card className="border-slate-200 shadow-sm overflow-x-auto">
                 <div className="h-1 w-full bg-linear-to-r from-amber-500 to-orange-500" />
                 <CardHeader className="pb-2">
                   <CardTitle className="text-lg font-bold text-slate-900 flex items-center gap-2">
@@ -789,7 +793,7 @@ export function ReportsClient() {
             {isLoading && !apAging ? (
               <ReportSkeleton />
             ) : apAging ? (
-              <Card className="border-slate-200 shadow-sm overflow-hidden">
+              <Card className="border-slate-200 shadow-sm overflow-x-auto">
                 <div className="h-1 w-full bg-linear-to-r from-red-500 to-rose-500" />
                 <CardHeader className="pb-2">
                   <CardTitle className="text-lg font-bold text-slate-900 flex items-center gap-2">
@@ -866,7 +870,7 @@ export function ReportsClient() {
             {isLoading && !vatData ? (
               <ReportSkeleton />
             ) : vatData ? (
-              <Card className="border-slate-200 shadow-sm overflow-hidden">
+              <Card className="border-slate-200 shadow-sm overflow-x-auto">
                 <div className="h-1 w-full bg-linear-to-r from-slate-600 to-slate-800" />
                 <CardHeader className="pb-2">
                   <CardTitle className="text-lg font-bold text-slate-900 flex items-center gap-2">
@@ -1054,7 +1058,7 @@ function BSSection({
       <Table>
         <TableHeader>
           <TableRow className={c.bg}>
-            <TableHead className="font-semibold text-slate-600 w-20">Code</TableHead>
+            <TableHead className="font-semibold text-slate-600 w-20 whitespace-nowrap">Code</TableHead>
             <TableHead className="font-semibold text-slate-600">Account</TableHead>
             <TableHead className="font-semibold text-slate-600 text-right">Amount (KES)</TableHead>
           </TableRow>

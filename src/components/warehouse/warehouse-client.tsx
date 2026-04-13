@@ -264,7 +264,7 @@ export function WarehouseClient({ initialStock, totalCount, initialWarehouses }:
     <div className="space-y-6">
       {/* ── Module Hero Strip ────────────────────────────────────────────── */}
       <div className="rounded-2xl overflow-hidden shadow-sm border border-violet-100">
-        <div className="relative h-24 bg-linear-to-r from-violet-500 to-purple-600 px-6 flex items-center justify-between overflow-hidden">
+        <div className="relative bg-linear-to-r from-violet-500 to-purple-600 px-4 py-4 sm:px-6 sm:py-0 sm:h-24 flex flex-col sm:flex-row sm:items-center gap-3 sm:justify-between overflow-hidden">
           <div className="absolute -top-6 -right-6 w-32 h-32 rounded-full bg-white/10" />
           <div className="absolute top-4 right-16 w-16 h-16 rounded-full bg-white/5" />
           <div className="flex items-center gap-4">
@@ -273,11 +273,12 @@ export function WarehouseClient({ initialStock, totalCount, initialWarehouses }:
             </div>
             <div>
               <h1 className="text-xl font-bold text-white">Warehouse</h1>
-              <p className="text-sm text-white/70">Track stock levels across all warehouses</p>
+              <p className="text-sm text-white/70 hidden sm:block">Track stock levels across all warehouses</p>
             </div>
           </div>
           <Button
             onClick={() => setAdjustOpen(true)}
+            size="sm"
             className="bg-white text-violet-700 hover:bg-violet-50 font-semibold shadow-sm shrink-0"
           >
             <Package className="h-4 w-4 mr-1.5" />
@@ -341,22 +342,22 @@ export function WarehouseClient({ initialStock, totalCount, initialWarehouses }:
       </div>
 
       {/* ── Tab Bar ──────────────────────────────────────────────────────── */}
-      <div className="bg-white rounded-xl border border-slate-200 p-1 flex gap-1">
+      <div className="bg-white rounded-xl border border-slate-200 p-1 flex gap-1 overflow-x-auto">
         {([
           { key: "stock" as Tab, label: "Stock Levels", icon: Package },
-          { key: "movements" as Tab, label: "Stock Movements", icon: ArrowUpDown },
-          { key: "grns" as Tab, label: "Goods Received (GRN)", icon: ClipboardCheck },
+          { key: "movements" as Tab, label: "Movements", icon: ArrowUpDown },
+          { key: "grns" as Tab, label: "GRN", icon: ClipboardCheck },
         ]).map(({ key, label, icon: Icon }) => (
           <button
             key={key}
             onClick={() => setActiveTab(key)}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
+            className={`flex items-center gap-2 px-3 sm:px-4 py-2.5 rounded-lg text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${
               activeTab === key
                 ? "bg-violet-100 text-violet-700 shadow-sm"
                 : "text-slate-500 hover:text-slate-700 hover:bg-slate-50"
             }`}
           >
-            <Icon className="h-4 w-4" />
+            <Icon className="h-4 w-4 shrink-0" />
             {label}
           </button>
         ))}
@@ -367,7 +368,7 @@ export function WarehouseClient({ initialStock, totalCount, initialWarehouses }:
         <>
           {/* ── Search / Filter Bar ───────────────────────────────────────────── */}
           <div className="bg-white rounded-xl border border-slate-200 p-3 flex flex-col sm:flex-row gap-3">
-            <div className="relative flex-1 max-w-xs">
+            <div className="relative flex-1 sm:max-w-xs">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <Input
                 placeholder="Search product or SKU…"
@@ -386,17 +387,17 @@ export function WarehouseClient({ initialStock, totalCount, initialWarehouses }:
           </div>
 
           {/* ── Stock Table ──────────────────────────────────────────────────── */}
-          <div className="rounded-xl border border-slate-200 overflow-hidden bg-white shadow-sm">
+          <div className="rounded-xl border border-slate-200 overflow-x-auto bg-white shadow-sm">
             <Table>
               <TableHeader>
                 <TableRow className="bg-slate-50 border-y border-slate-200">
-                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Product</TableHead>
-                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">SKU</TableHead>
-                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Warehouse</TableHead>
-                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Qty</TableHead>
-                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Unit</TableHead>
-                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</TableHead>
-                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Last Updated</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Product</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">SKU</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Warehouse</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap text-right">Qty</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Unit</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Status</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Last Updated</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -472,7 +473,7 @@ export function WarehouseClient({ initialStock, totalCount, initialWarehouses }:
       {activeTab === "movements" && (
         <>
           <div className="bg-white rounded-xl border border-slate-200 p-3 flex flex-col sm:flex-row gap-3">
-            <div className="relative flex-1 max-w-xs">
+            <div className="relative flex-1 sm:max-w-xs">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <Input
                 placeholder="Search notes…"
@@ -499,17 +500,17 @@ export function WarehouseClient({ initialStock, totalCount, initialWarehouses }:
             </Select>
           </div>
 
-          <div className="rounded-xl border border-slate-200 overflow-hidden bg-white shadow-sm">
+          <div className="rounded-xl border border-slate-200 overflow-x-auto bg-white shadow-sm">
             <Table>
               <TableHeader>
                 <TableRow className="bg-slate-50 border-y border-slate-200">
-                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Date</TableHead>
-                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Type</TableHead>
-                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Product</TableHead>
-                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Warehouse</TableHead>
-                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Qty</TableHead>
-                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Unit Cost</TableHead>
-                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Notes</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Date</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Type</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Product</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Warehouse</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap text-right">Qty</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap text-right">Unit Cost</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Notes</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -572,7 +573,7 @@ export function WarehouseClient({ initialStock, totalCount, initialWarehouses }:
       {activeTab === "grns" && (
         <>
           <div className="bg-white rounded-xl border border-slate-200 p-3 flex flex-col sm:flex-row gap-3">
-            <div className="relative flex-1 max-w-xs">
+            <div className="relative flex-1 sm:max-w-xs">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <Input
                 placeholder="Search GRN number…"
@@ -583,17 +584,17 @@ export function WarehouseClient({ initialStock, totalCount, initialWarehouses }:
             </div>
           </div>
 
-          <div className="rounded-xl border border-slate-200 overflow-hidden bg-white shadow-sm">
+          <div className="rounded-xl border border-slate-200 overflow-x-auto bg-white shadow-sm">
             <Table>
               <TableHeader>
                 <TableRow className="bg-slate-50 border-y border-slate-200">
-                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">GRN Number</TableHead>
-                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">LPO Number</TableHead>
-                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Supplier</TableHead>
-                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Warehouse</TableHead>
-                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</TableHead>
-                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Received Date</TableHead>
-                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Notes</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">GRN Number</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">LPO Number</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Supplier</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Warehouse</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Status</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Received Date</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Notes</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

@@ -301,13 +301,13 @@ export default function ExpensesClient({ initialExpenses, total, tenant }: Props
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-y bg-slate-50 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                      <th className="px-4 py-2.5">Expense #</th>
-                      <th className="px-4 py-2.5">Description</th>
-                      <th className="px-4 py-2.5">Category</th>
-                      <th className="px-4 py-2.5">Date</th>
-                      <th className="px-4 py-2.5">Method</th>
-                      <th className="px-4 py-2.5 text-right">Amount</th>
-                      <th className="px-4 py-2.5">Status</th>
+                      <th className="px-4 py-2.5 whitespace-nowrap">Expense #</th>
+                      <th className="px-4 py-2.5 whitespace-nowrap">Description</th>
+                      <th className="px-4 py-2.5 whitespace-nowrap">Category</th>
+                      <th className="px-4 py-2.5 whitespace-nowrap">Date</th>
+                      <th className="px-4 py-2.5 whitespace-nowrap">Method</th>
+                      <th className="px-4 py-2.5 text-right whitespace-nowrap">Amount</th>
+                      <th className="px-4 py-2.5 whitespace-nowrap">Status</th>
                       <th className="px-4 py-2.5 no-print" />
                     </tr>
                   </thead>

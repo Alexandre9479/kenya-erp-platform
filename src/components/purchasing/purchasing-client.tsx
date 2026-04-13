@@ -171,7 +171,7 @@ export function PurchasingClient({ initialPOs, poCount, initialSuppliers, suppli
     <div className="space-y-6">
       {/* ── Module Hero Strip ────────────────────────────────────────────── */}
       <div className="rounded-2xl overflow-hidden shadow-sm border border-amber-100">
-        <div className="relative h-24 bg-linear-to-r from-amber-500 to-orange-500 px-6 flex items-center justify-between overflow-hidden">
+        <div className="relative bg-linear-to-r from-amber-500 to-orange-500 px-4 py-4 sm:px-6 sm:py-0 sm:h-24 flex flex-col sm:flex-row sm:items-center gap-3 sm:justify-between overflow-hidden">
           <div className="absolute -top-6 -right-6 w-32 h-32 rounded-full bg-white/10" />
           <div className="absolute top-4 right-16 w-16 h-16 rounded-full bg-white/5" />
           <div className="flex items-center gap-4">
@@ -180,11 +180,12 @@ export function PurchasingClient({ initialPOs, poCount, initialSuppliers, suppli
             </div>
             <div>
               <h1 className="text-xl font-bold text-white">Purchasing</h1>
-              <p className="text-sm text-white/70">Manage LPOs and supplier relationships</p>
+              <p className="text-sm text-white/70 hidden sm:block">Manage LPOs and supplier relationships</p>
             </div>
           </div>
           <Button
             asChild
+            size="sm"
             className="bg-white text-amber-700 hover:bg-amber-50 font-semibold shadow-sm shrink-0"
           >
             <Link href="/purchasing/new">
@@ -258,7 +259,7 @@ export function PurchasingClient({ initialPOs, poCount, initialSuppliers, suppli
         {/* LPOs Tab */}
         <TabsContent value="lpos" className="space-y-4 mt-4">
           <div className="bg-white rounded-xl border border-slate-200 p-3 flex flex-col sm:flex-row gap-3">
-            <div className="relative flex-1 max-w-xs">
+            <div className="relative flex-1 sm:max-w-xs">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <Input
                 placeholder="Search LPO number…"
@@ -278,16 +279,16 @@ export function PurchasingClient({ initialPOs, poCount, initialSuppliers, suppli
             </Select>
           </div>
 
-          <div className="rounded-xl border border-slate-200 overflow-hidden bg-white shadow-sm">
+          <div className="rounded-xl border border-slate-200 overflow-x-auto bg-white shadow-sm">
             <Table>
               <TableHeader>
                 <TableRow className="bg-slate-50 border-y border-slate-200">
-                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">LPO #</TableHead>
-                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Supplier</TableHead>
-                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Issue Date</TableHead>
-                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Expected</TableHead>
-                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</TableHead>
-                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Total</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">LPO #</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Supplier</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Issue Date</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Expected</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Status</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap text-right">Total</TableHead>
                   <TableHead className="w-10" />
                 </TableRow>
               </TableHeader>
@@ -398,16 +399,16 @@ export function PurchasingClient({ initialPOs, poCount, initialSuppliers, suppli
             </Button>
           </div>
 
-          <div className="rounded-xl border border-slate-200 overflow-hidden bg-white shadow-sm">
+          <div className="rounded-xl border border-slate-200 overflow-x-auto bg-white shadow-sm">
             <Table>
               <TableHeader>
                 <TableRow className="bg-slate-50 border-y border-slate-200">
-                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Name</TableHead>
-                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Contact</TableHead>
-                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">City</TableHead>
-                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">KRA PIN</TableHead>
-                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Terms</TableHead>
-                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Balance</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Name</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Contact</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">City</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">KRA PIN</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Terms</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap text-right">Balance</TableHead>
                   <TableHead className="w-10" />
                 </TableRow>
               </TableHeader>
