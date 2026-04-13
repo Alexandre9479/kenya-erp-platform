@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import Image from "next/image";
 
 type POItem = {
   id: string;
@@ -53,14 +54,24 @@ const statusConfig: Record<string, { label: string; className: string }> = {
   cancelled: { label: "Cancelled", className: "bg-slate-100 text-slate-400" },
 };
 
+type TenantInfo = {
+  name: string;
+  email: string | null;
+  phone: string | null;
+  address: string | null;
+  city: string | null;
+  kra_pin: string | null;
+  logo_url: string | null;
+};
+
 interface Props {
   po: PurchaseOrder;
   items: POItem[];
   supplier: Supplier;
-  tenantName?: string;
+  tenant?: TenantInfo;
 }
 
-export function LPODetail({ po, items, supplier, tenantName }: Props) {
+export function LPODetail({ po, items, supplier, tenant }: Props) {
   const router = useRouter();
   const [isUpdating, setIsUpdating] = useState(false);
   const cfg = statusConfig[po.status] ?? statusConfig.draft;
@@ -132,15 +143,25 @@ export function LPODetail({ po, items, supplier, tenantName }: Props) {
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
             <div className="lg:col-span-2 space-y-6">
 
-              {/* Print header */}
+              {/* Print header with company logo & details */}
               <div className="hidden print:block mb-6">
                 <div className="flex items-start justify-between">
                   <div>
-                    <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">LOCAL PURCHASE ORDER</h1>
-                    <p className="text-slate-500 text-sm mt-1">{tenantName ?? "Kenya ERP"}</p>
+                    {tenant?.logo_url && (
+                      <div className="relative w-14 h-14 mb-2">
+                        <Image src={tenant.logo_url} alt="Logo" fill className="object-contain" />
+                      </div>
+                    )}
+                    <h2 className="text-lg font-bold text-slate-900">{tenant?.name ?? "Company"}</h2>
+                    {tenant?.address && <p className="text-xs text-slate-500">{tenant.address}</p>}
+                    {tenant?.city && <p className="text-xs text-slate-500">{tenant.city}</p>}
+                    {tenant?.phone && <p className="text-xs text-slate-500">Tel: {tenant.phone}</p>}
+                    {tenant?.email && <p className="text-xs text-slate-500">{tenant.email}</p>}
+                    {tenant?.kra_pin && <p className="text-xs text-slate-500">KRA PIN: {tenant.kra_pin}</p>}
                   </div>
                   <div className="text-right">
-                    <p className="text-2xl font-bold text-emerald-600">{po.lpo_number}</p>
+                    <h1 className="text-2xl font-extrabold text-emerald-700 uppercase tracking-wide">Local Purchase Order</h1>
+                    <p className="text-2xl font-bold text-slate-900 mt-1">{po.lpo_number}</p>
                     <span className={`inline-block rounded-full px-3 py-1 text-xs font-semibold mt-1 ${cfg.className}`}>{cfg.label}</span>
                   </div>
                 </div>
@@ -272,6 +293,12 @@ export function LPODetail({ po, items, supplier, tenantName }: Props) {
                     <p className="text-xs text-slate-500">Supplier acknowledgement</p>
                   </div>
                 </div>
+              </div>
+
+              {/* Print footer */}
+              <div className="hidden print:block border-t border-slate-200 pt-3 mt-6 text-center">
+                <p className="text-xs text-slate-400">This is a computer-generated document and does not require a signature.</p>
+                {tenant?.email && <p className="text-xs text-slate-400">For queries, contact {tenant.email}{tenant?.phone ? ` or call ${tenant.phone}` : ""}</p>}
               </div>
             </div>
           </div>

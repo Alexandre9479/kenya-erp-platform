@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { createServiceClient } from "@/lib/supabase/server";
-import { InvoicesClient } from "@/components/sales/invoices-client";
+import { SalesClient } from "@/components/sales/sales-client";
 
 export const metadata: Metadata = { title: "Sales & Invoices" };
 
@@ -12,36 +12,59 @@ export default async function SalesPage() {
 
   const tenantId = session.user.tenantId;
   const supabase = await createServiceClient();
+  const db = supabase as any;
 
-  const { data, count } = await supabase
-    .from("invoices")
-    .select("*", { count: "exact" })
-    .eq("tenant_id", tenantId)
-    .order("created_at", { ascending: false })
-    .range(0, 24);
+  // Fetch invoices and quotes in parallel
+  const [invoiceResult, quoteResult] = await Promise.all([
+    supabase
+      .from("invoices")
+      .select("*", { count: "exact" })
+      .eq("tenant_id", tenantId)
+      .order("created_at", { ascending: false })
+      .range(0, 24),
+    db
+      .from("quotes")
+      .select("*", { count: "exact" })
+      .eq("tenant_id", tenantId)
+      .order("created_at", { ascending: false })
+      .range(0, 24),
+  ]);
 
-  const customerIds = [...new Set((data ?? []).map((i) => i.customer_id))];
+  // Enrich invoices with customer names
+  const invoiceData = invoiceResult.data ?? [];
+  const quoteData = (quoteResult.data ?? []) as any[];
+
+  const allCustomerIds = [
+    ...new Set([
+      ...invoiceData.map((i) => i.customer_id),
+      ...quoteData.map((q: any) => q.customer_id),
+    ]),
+  ];
   let customerMap: Record<string, string> = {};
-  if (customerIds.length > 0) {
+  if (allCustomerIds.length > 0) {
     const { data: customers } = await supabase
       .from("customers")
       .select("id, name")
-      .in("id", customerIds);
+      .in("id", allCustomerIds);
     (customers ?? []).forEach((c) => { customerMap[c.id] = c.name; });
   }
 
-  const initialInvoices = (data ?? []).map((inv) => ({
+  const initialInvoices = invoiceData.map((inv) => ({
     ...inv,
     customer_name: customerMap[inv.customer_id] ?? "—",
   }));
 
+  const initialQuotes = quoteData.map((q: any) => ({
+    ...q,
+    customer_name: customerMap[q.customer_id] ?? "—",
+  }));
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">Sales & Invoices</h1>
-        <p className="text-sm text-slate-500 mt-1">Manage customer invoices and track payments</p>
-      </div>
-      <InvoicesClient initialInvoices={initialInvoices} totalCount={count ?? 0} />
-    </div>
+    <SalesClient
+      initialInvoices={initialInvoices}
+      invoiceCount={invoiceResult.count ?? 0}
+      initialQuotes={initialQuotes}
+      quoteCount={quoteResult.count ?? 0}
+    />
   );
 }

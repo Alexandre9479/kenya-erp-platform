@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Search, Package, AlertTriangle, Warehouse, TrendingDown } from "lucide-react";
+import { Search, Package, AlertTriangle, Warehouse, TrendingDown, ArrowUpDown, ClipboardCheck } from "lucide-react";
 import { toast } from "sonner";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -14,8 +14,40 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+
+type Tab = "stock" | "movements" | "grns";
+
+type MovementRow = {
+  id: string;
+  product_id: string;
+  warehouse_id: string;
+  product_name: string;
+  warehouse_name: string;
+  type: string;
+  quantity: number;
+  unit_cost: number | null;
+  reference_type: string | null;
+  reference_id: string | null;
+  notes: string | null;
+  created_at: string;
+};
+
+type GRNRow = {
+  id: string;
+  grn_number: string;
+  po_id: string;
+  supplier_id: string;
+  warehouse_id: string;
+  supplier_name: string;
+  warehouse_name: string;
+  lpo_number: string;
+  status: string;
+  received_by: string | null;
+  notes: string | null;
+  received_at: string;
+  created_at: string;
+};
 
 type StockRow = {
   id: string;
@@ -51,6 +83,7 @@ interface Props {
 }
 
 export function WarehouseClient({ initialStock, totalCount, initialWarehouses }: Props) {
+  const [activeTab, setActiveTab] = useState<Tab>("stock");
   const [stock, setStock] = useState(initialStock);
   const [count, setCount] = useState(totalCount);
   const [warehouses] = useState(initialWarehouses);
@@ -63,6 +96,23 @@ export function WarehouseClient({ initialStock, totalCount, initialWarehouses }:
   const [isSaving, setIsSaving] = useState(false);
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isFirst = useRef(true);
+
+  // Movements state
+  const [movements, setMovements] = useState<MovementRow[]>([]);
+  const [movementsCount, setMovementsCount] = useState(0);
+  const [movementsPage, setMovementsPage] = useState(1);
+  const [movementsSearch, setMovementsSearch] = useState("");
+  const [movementsType, setMovementsType] = useState("all");
+  const [movementsLoading, setMovementsLoading] = useState(false);
+  const movementsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // GRN state
+  const [grns, setGrns] = useState<GRNRow[]>([]);
+  const [grnsCount, setGrnsCount] = useState(0);
+  const [grnsPage, setGrnsPage] = useState(1);
+  const [grnsSearch, setGrnsSearch] = useState("");
+  const [grnsLoading, setGrnsLoading] = useState(false);
+  const grnsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { register, control, handleSubmit, reset, formState: { errors } } = useForm<AdjustForm>({
     resolver: zodResolver(adjustSchema),
@@ -86,6 +136,63 @@ export function WarehouseClient({ initialStock, totalCount, initialWarehouses }:
     if (isFirst.current) return;
     fetchStock();
   }, [warehouseFilter, page]);
+
+  // ── Movements fetch ──
+  async function fetchMovements() {
+    setMovementsLoading(true);
+    try {
+      const params = new URLSearchParams({ search: movementsSearch, page: String(movementsPage), limit: "25" });
+      if (movementsType !== "all") params.set("type", movementsType);
+      const res = await fetch(`/api/stock/movements?${params}`);
+      const json = await res.json();
+      if (json.error) throw new Error(json.error);
+      setMovements(json.data);
+      setMovementsCount(json.count);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to load movements");
+    } finally {
+      setMovementsLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    if (activeTab === "movements") fetchMovements();
+  }, [activeTab, movementsPage, movementsType]);
+
+  useEffect(() => {
+    if (activeTab !== "movements") return;
+    if (movementsTimer.current) clearTimeout(movementsTimer.current);
+    movementsTimer.current = setTimeout(fetchMovements, 400);
+    return () => { if (movementsTimer.current) clearTimeout(movementsTimer.current); };
+  }, [movementsSearch]);
+
+  // ── GRN fetch ──
+  async function fetchGrns() {
+    setGrnsLoading(true);
+    try {
+      const params = new URLSearchParams({ search: grnsSearch, page: String(grnsPage), limit: "25" });
+      const res = await fetch(`/api/grn?${params}`);
+      const json = await res.json();
+      if (json.error) throw new Error(json.error);
+      setGrns(json.data);
+      setGrnsCount(json.count);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to load GRNs");
+    } finally {
+      setGrnsLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    if (activeTab === "grns") fetchGrns();
+  }, [activeTab, grnsPage]);
+
+  useEffect(() => {
+    if (activeTab !== "grns") return;
+    if (grnsTimer.current) clearTimeout(grnsTimer.current);
+    grnsTimer.current = setTimeout(fetchGrns, 400);
+    return () => { if (grnsTimer.current) clearTimeout(grnsTimer.current); };
+  }, [grnsSearch]);
 
   async function fetchStock() {
     setIsLoading(true);
@@ -127,6 +234,27 @@ export function WarehouseClient({ initialStock, totalCount, initialWarehouses }:
 
   const limit = 25;
   const dateStr = (iso: string) => new Date(iso).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" });
+  const dateTimeStr = (iso: string) => new Date(iso).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+
+  const movementTypeLabel: Record<string, { label: string; color: string }> = {
+    stock_in: { label: "Stock In", color: "bg-emerald-100 text-emerald-700" },
+    stock_out: { label: "Stock Out", color: "bg-red-100 text-red-700" },
+    opening: { label: "Opening", color: "bg-blue-100 text-blue-700" },
+    adjustment: { label: "Adjustment", color: "bg-amber-100 text-amber-700" },
+    purchase: { label: "Purchase", color: "bg-emerald-100 text-emerald-700" },
+    sale: { label: "Sale", color: "bg-violet-100 text-violet-700" },
+    transfer_in: { label: "Transfer In", color: "bg-cyan-100 text-cyan-700" },
+    transfer_out: { label: "Transfer Out", color: "bg-orange-100 text-orange-700" },
+    write_off: { label: "Write Off", color: "bg-red-100 text-red-700" },
+    return: { label: "Return", color: "bg-teal-100 text-teal-700" },
+  };
+
+  const grnStatusConfig: Record<string, { label: string; color: string }> = {
+    received: { label: "Received", color: "bg-emerald-100 text-emerald-700" },
+    partial: { label: "Partial", color: "bg-amber-100 text-amber-700" },
+    inspecting: { label: "Inspecting", color: "bg-blue-100 text-blue-700" },
+    rejected: { label: "Rejected", color: "bg-red-100 text-red-700" },
+  };
 
   // Derived KPI values
   const lowStockCount = stock.filter((s) => s.quantity <= s.reorder_level && s.reorder_level > 0 && s.quantity > 0).length;
@@ -212,105 +340,311 @@ export function WarehouseClient({ initialStock, totalCount, initialWarehouses }:
         </div>
       </div>
 
-      {/* ── Search / Filter Bar ───────────────────────────────────────────── */}
-      <div className="bg-white rounded-xl border border-slate-200 p-3 flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1 max-w-xs">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-          <Input
-            placeholder="Search product or SKU…"
-            value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            className="pl-9 focus-visible:ring-violet-500"
-          />
-        </div>
-        <Select value={warehouseFilter} onValueChange={(v) => { setWarehouseFilter(v); setPage(1); }}>
-          <SelectTrigger className="w-44"><SelectValue placeholder="All warehouses" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Warehouses</SelectItem>
-            {warehouses.map((w) => <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>)}
-          </SelectContent>
-        </Select>
+      {/* ── Tab Bar ──────────────────────────────────────────────────────── */}
+      <div className="bg-white rounded-xl border border-slate-200 p-1 flex gap-1">
+        {([
+          { key: "stock" as Tab, label: "Stock Levels", icon: Package },
+          { key: "movements" as Tab, label: "Stock Movements", icon: ArrowUpDown },
+          { key: "grns" as Tab, label: "Goods Received (GRN)", icon: ClipboardCheck },
+        ]).map(({ key, label, icon: Icon }) => (
+          <button
+            key={key}
+            onClick={() => setActiveTab(key)}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
+              activeTab === key
+                ? "bg-violet-100 text-violet-700 shadow-sm"
+                : "text-slate-500 hover:text-slate-700 hover:bg-slate-50"
+            }`}
+          >
+            <Icon className="h-4 w-4" />
+            {label}
+          </button>
+        ))}
       </div>
 
-      {/* ── Table ────────────────────────────────────────────────────────── */}
-      <div className="rounded-xl border border-slate-200 overflow-hidden bg-white shadow-sm">
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-slate-50 border-y border-slate-200">
-              <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Product</TableHead>
-              <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">SKU</TableHead>
-              <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Warehouse</TableHead>
-              <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Qty</TableHead>
-              <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Unit</TableHead>
-              <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</TableHead>
-              <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Last Updated</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              Array.from({ length: 5 }).map((_, i) => (
-                <TableRow key={i}>{Array.from({ length: 7 }).map((_, j) => <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>)}</TableRow>
-              ))
-            ) : stock.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={7} className="py-16 text-center">
-                  <div className="flex flex-col items-center">
-                    <div className="w-16 h-16 rounded-2xl bg-linear-to-br from-violet-500 to-purple-600 flex items-center justify-center mb-4 shadow-lg shadow-violet-500/30">
-                      <Package className="h-8 w-8 text-white" />
-                    </div>
-                    <p className="font-bold text-slate-800 text-base">No stock records found</p>
-                    <p className="text-sm text-slate-500 mt-1">Add opening stock to begin tracking inventory</p>
-                    <Button
-                      onClick={() => setAdjustOpen(true)}
-                      className="mt-4 bg-linear-to-r from-violet-500 to-purple-600 text-white hover:from-violet-600 hover:to-purple-700"
-                    >
-                      <Package className="h-4 w-4 mr-1.5" />
-                      Add Opening Stock
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ) : (
-              stock.map((row) => {
-                const isLow = row.quantity <= row.reorder_level && row.reorder_level > 0;
-                const isOut = row.quantity <= 0;
-                return (
-                  <TableRow key={row.id} className="hover:bg-violet-50/20 transition-colors border-b border-slate-100">
-                    <TableCell className="font-medium text-slate-900">{row.product_name}</TableCell>
-                    <TableCell className="text-slate-500 text-xs font-mono">{row.sku}</TableCell>
-                    <TableCell className="text-slate-500">{row.warehouse_name}</TableCell>
-                    <TableCell className={`text-right font-semibold ${isOut ? "text-red-600" : isLow ? "text-amber-600" : "text-slate-900"}`}>
-                      {row.quantity}
-                    </TableCell>
-                    <TableCell className="text-slate-500">{row.unit}</TableCell>
-                    <TableCell>
-                      {isOut ? (
-                        <span className="rounded-full px-2.5 py-1 text-xs font-semibold bg-red-100 text-red-700">Out of Stock</span>
-                      ) : isLow ? (
-                        <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold bg-amber-100 text-amber-700">
-                          <AlertTriangle className="h-3 w-3" />Low Stock
-                        </span>
-                      ) : (
-                        <span className="rounded-full px-2.5 py-1 text-xs font-semibold bg-emerald-100 text-emerald-700">In Stock</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-slate-500 text-xs">{dateStr(row.updated_at)}</TableCell>
-                  </TableRow>
-                );
-              })
-            )}
-          </TableBody>
-        </Table>
-      </div>
-
-      {count > limit && (
-        <div className="flex items-center justify-between text-sm text-slate-500">
-          <span>Showing {(page - 1) * limit + 1}–{Math.min(page * limit, count)} of {count}</span>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>Previous</Button>
-            <Button variant="outline" size="sm" disabled={page * limit >= count} onClick={() => setPage((p) => p + 1)}>Next</Button>
+      {/* ══════════════ STOCK LEVELS TAB ══════════════ */}
+      {activeTab === "stock" && (
+        <>
+          {/* ── Search / Filter Bar ───────────────────────────────────────────── */}
+          <div className="bg-white rounded-xl border border-slate-200 p-3 flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1 max-w-xs">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <Input
+                placeholder="Search product or SKU…"
+                value={search}
+                onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+                className="pl-9 focus-visible:ring-violet-500"
+              />
+            </div>
+            <Select value={warehouseFilter} onValueChange={(v) => { setWarehouseFilter(v); setPage(1); }}>
+              <SelectTrigger className="w-44"><SelectValue placeholder="All warehouses" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Warehouses</SelectItem>
+                {warehouses.map((w) => <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </div>
-        </div>
+
+          {/* ── Stock Table ──────────────────────────────────────────────────── */}
+          <div className="rounded-xl border border-slate-200 overflow-hidden bg-white shadow-sm">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-slate-50 border-y border-slate-200">
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Product</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">SKU</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Warehouse</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Qty</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Unit</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Last Updated</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  Array.from({ length: 5 }).map((_, i) => (
+                    <TableRow key={i}>{Array.from({ length: 7 }).map((_, j) => <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>)}</TableRow>
+                  ))
+                ) : stock.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="py-16 text-center">
+                      <div className="flex flex-col items-center">
+                        <div className="w-16 h-16 rounded-2xl bg-linear-to-br from-violet-500 to-purple-600 flex items-center justify-center mb-4 shadow-lg shadow-violet-500/30">
+                          <Package className="h-8 w-8 text-white" />
+                        </div>
+                        <p className="font-bold text-slate-800 text-base">No stock records found</p>
+                        <p className="text-sm text-slate-500 mt-1">Add opening stock to begin tracking inventory</p>
+                        <Button
+                          onClick={() => setAdjustOpen(true)}
+                          className="mt-4 bg-linear-to-r from-violet-500 to-purple-600 text-white hover:from-violet-600 hover:to-purple-700"
+                        >
+                          <Package className="h-4 w-4 mr-1.5" />
+                          Add Opening Stock
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  stock.map((row) => {
+                    const isLow = row.quantity <= row.reorder_level && row.reorder_level > 0;
+                    const isOut = row.quantity <= 0;
+                    return (
+                      <TableRow key={row.id} className="hover:bg-violet-50/20 transition-colors border-b border-slate-100">
+                        <TableCell className="font-medium text-slate-900">{row.product_name}</TableCell>
+                        <TableCell className="text-slate-500 text-xs font-mono">{row.sku}</TableCell>
+                        <TableCell className="text-slate-500">{row.warehouse_name}</TableCell>
+                        <TableCell className={`text-right font-semibold ${isOut ? "text-red-600" : isLow ? "text-amber-600" : "text-slate-900"}`}>
+                          {row.quantity}
+                        </TableCell>
+                        <TableCell className="text-slate-500">{row.unit}</TableCell>
+                        <TableCell>
+                          {isOut ? (
+                            <span className="rounded-full px-2.5 py-1 text-xs font-semibold bg-red-100 text-red-700">Out of Stock</span>
+                          ) : isLow ? (
+                            <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold bg-amber-100 text-amber-700">
+                              <AlertTriangle className="h-3 w-3" />Low Stock
+                            </span>
+                          ) : (
+                            <span className="rounded-full px-2.5 py-1 text-xs font-semibold bg-emerald-100 text-emerald-700">In Stock</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-slate-500 text-xs">{dateStr(row.updated_at)}</TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </div>
+
+          {count > limit && (
+            <div className="flex items-center justify-between text-sm text-slate-500">
+              <span>Showing {(page - 1) * limit + 1}–{Math.min(page * limit, count)} of {count}</span>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>Previous</Button>
+                <Button variant="outline" size="sm" disabled={page * limit >= count} onClick={() => setPage((p) => p + 1)}>Next</Button>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* ══════════════ STOCK MOVEMENTS TAB ══════════════ */}
+      {activeTab === "movements" && (
+        <>
+          <div className="bg-white rounded-xl border border-slate-200 p-3 flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1 max-w-xs">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <Input
+                placeholder="Search notes…"
+                value={movementsSearch}
+                onChange={(e) => { setMovementsSearch(e.target.value); setMovementsPage(1); }}
+                className="pl-9 focus-visible:ring-violet-500"
+              />
+            </div>
+            <Select value={movementsType} onValueChange={(v) => { setMovementsType(v); setMovementsPage(1); }}>
+              <SelectTrigger className="w-44"><SelectValue placeholder="All types" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="stock_in">Stock In</SelectItem>
+                <SelectItem value="stock_out">Stock Out</SelectItem>
+                <SelectItem value="opening">Opening</SelectItem>
+                <SelectItem value="adjustment">Adjustment</SelectItem>
+                <SelectItem value="purchase">Purchase</SelectItem>
+                <SelectItem value="sale">Sale</SelectItem>
+                <SelectItem value="transfer_in">Transfer In</SelectItem>
+                <SelectItem value="transfer_out">Transfer Out</SelectItem>
+                <SelectItem value="write_off">Write Off</SelectItem>
+                <SelectItem value="return">Return</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="rounded-xl border border-slate-200 overflow-hidden bg-white shadow-sm">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-slate-50 border-y border-slate-200">
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Date</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Type</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Product</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Warehouse</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Qty</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Unit Cost</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Notes</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {movementsLoading ? (
+                  Array.from({ length: 5 }).map((_, i) => (
+                    <TableRow key={i}>{Array.from({ length: 7 }).map((_, j) => <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>)}</TableRow>
+                  ))
+                ) : movements.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="py-16 text-center">
+                      <div className="flex flex-col items-center">
+                        <div className="w-16 h-16 rounded-2xl bg-linear-to-br from-violet-500 to-purple-600 flex items-center justify-center mb-4 shadow-lg shadow-violet-500/30">
+                          <ArrowUpDown className="h-8 w-8 text-white" />
+                        </div>
+                        <p className="font-bold text-slate-800 text-base">No stock movements yet</p>
+                        <p className="text-sm text-slate-500 mt-1">Movements appear here when stock is adjusted, received from LPOs, or sold</p>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  movements.map((m) => {
+                    const typeInfo = movementTypeLabel[m.type] ?? { label: m.type, color: "bg-slate-100 text-slate-700" };
+                    const isPositive = m.quantity > 0;
+                    return (
+                      <TableRow key={m.id} className="hover:bg-violet-50/20 transition-colors border-b border-slate-100">
+                        <TableCell className="text-slate-500 text-xs whitespace-nowrap">{dateTimeStr(m.created_at)}</TableCell>
+                        <TableCell>
+                          <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${typeInfo.color}`}>{typeInfo.label}</span>
+                        </TableCell>
+                        <TableCell className="font-medium text-slate-900">{m.product_name}</TableCell>
+                        <TableCell className="text-slate-500">{m.warehouse_name}</TableCell>
+                        <TableCell className={`text-right font-semibold ${isPositive ? "text-emerald-600" : "text-red-600"}`}>
+                          {isPositive ? "+" : ""}{m.quantity}
+                        </TableCell>
+                        <TableCell className="text-right text-slate-500">
+                          {m.unit_cost != null ? `KES ${Number(m.unit_cost).toLocaleString()}` : "—"}
+                        </TableCell>
+                        <TableCell className="text-slate-500 text-xs max-w-50 truncate">{m.notes ?? "—"}</TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </div>
+
+          {movementsCount > limit && (
+            <div className="flex items-center justify-between text-sm text-slate-500">
+              <span>Showing {(movementsPage - 1) * limit + 1}–{Math.min(movementsPage * limit, movementsCount)} of {movementsCount}</span>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" disabled={movementsPage === 1} onClick={() => setMovementsPage((p) => p - 1)}>Previous</Button>
+                <Button variant="outline" size="sm" disabled={movementsPage * limit >= movementsCount} onClick={() => setMovementsPage((p) => p + 1)}>Next</Button>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* ══════════════ GRN TAB ══════════════ */}
+      {activeTab === "grns" && (
+        <>
+          <div className="bg-white rounded-xl border border-slate-200 p-3 flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1 max-w-xs">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <Input
+                placeholder="Search GRN number…"
+                value={grnsSearch}
+                onChange={(e) => { setGrnsSearch(e.target.value); setGrnsPage(1); }}
+                className="pl-9 focus-visible:ring-violet-500"
+              />
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-slate-200 overflow-hidden bg-white shadow-sm">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-slate-50 border-y border-slate-200">
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">GRN Number</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">LPO Number</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Supplier</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Warehouse</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Received Date</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Notes</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {grnsLoading ? (
+                  Array.from({ length: 5 }).map((_, i) => (
+                    <TableRow key={i}>{Array.from({ length: 7 }).map((_, j) => <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>)}</TableRow>
+                  ))
+                ) : grns.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="py-16 text-center">
+                      <div className="flex flex-col items-center">
+                        <div className="w-16 h-16 rounded-2xl bg-linear-to-br from-violet-500 to-purple-600 flex items-center justify-center mb-4 shadow-lg shadow-violet-500/30">
+                          <ClipboardCheck className="h-8 w-8 text-white" />
+                        </div>
+                        <p className="font-bold text-slate-800 text-base">No goods received notes yet</p>
+                        <p className="text-sm text-slate-500 mt-1">GRNs are created automatically when an LPO is marked as received</p>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  grns.map((g) => {
+                    const statusInfo = grnStatusConfig[g.status] ?? { label: g.status, color: "bg-slate-100 text-slate-700" };
+                    return (
+                      <TableRow key={g.id} className="hover:bg-violet-50/20 transition-colors border-b border-slate-100">
+                        <TableCell className="font-semibold text-violet-700 font-mono text-sm">{g.grn_number}</TableCell>
+                        <TableCell className="text-slate-600 font-mono text-sm">{g.lpo_number}</TableCell>
+                        <TableCell className="font-medium text-slate-900">{g.supplier_name}</TableCell>
+                        <TableCell className="text-slate-500">{g.warehouse_name}</TableCell>
+                        <TableCell>
+                          <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${statusInfo.color}`}>{statusInfo.label}</span>
+                        </TableCell>
+                        <TableCell className="text-slate-500 text-xs whitespace-nowrap">{dateTimeStr(g.received_at || g.created_at)}</TableCell>
+                        <TableCell className="text-slate-500 text-xs max-w-50 truncate">{g.notes ?? "—"}</TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </div>
+
+          {grnsCount > limit && (
+            <div className="flex items-center justify-between text-sm text-slate-500">
+              <span>Showing {(grnsPage - 1) * limit + 1}–{Math.min(grnsPage * limit, grnsCount)} of {grnsCount}</span>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" disabled={grnsPage === 1} onClick={() => setGrnsPage((p) => p - 1)}>Previous</Button>
+                <Button variant="outline" size="sm" disabled={grnsPage * limit >= grnsCount} onClick={() => setGrnsPage((p) => p + 1)}>Next</Button>
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       {/* Adjustment Sheet */}

@@ -10,6 +10,7 @@ import {
   TrendingUp,
   Clock,
   AlertCircle,
+  Banknote,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -114,6 +115,47 @@ export function InvoicesClient({ initialInvoices, totalCount }: Props) {
       fetchInvoices();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to delete");
+    }
+  }
+
+  // ── Record payment state ──
+  const [paymentTarget, setPaymentTarget] = useState<InvoiceRow | null>(null);
+  const [paymentAmount, setPaymentAmount] = useState("");
+  const [isRecordingPayment, setIsRecordingPayment] = useState(false);
+
+  function openPaymentDialog(inv: InvoiceRow) {
+    setPaymentTarget(inv);
+    const balance = inv.total_amount - inv.amount_paid;
+    setPaymentAmount(balance > 0 ? balance.toFixed(2) : "");
+  }
+
+  async function recordPayment() {
+    if (!paymentTarget) return;
+    const amount = parseFloat(paymentAmount);
+    if (isNaN(amount) || amount <= 0) {
+      toast.error("Enter a valid payment amount");
+      return;
+    }
+    setIsRecordingPayment(true);
+    try {
+      const newPaid = paymentTarget.amount_paid + amount;
+      const res = await fetch(`/api/invoices/${paymentTarget.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount_paid: newPaid }),
+      });
+      if (!res.ok) {
+        const json = await res.json();
+        throw new Error(json.error ?? "Failed");
+      }
+      toast.success(`Payment of KES ${KES(amount)} recorded`);
+      setPaymentTarget(null);
+      setPaymentAmount("");
+      fetchInvoices();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to record payment");
+    } finally {
+      setIsRecordingPayment(false);
     }
   }
 
@@ -313,16 +355,25 @@ export function InvoicesClient({ initialInvoices, totalCount }: Props) {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem asChild>
-                            <Link href={`/sales/${inv.id}`}>View</Link>
+                            <Link href={`/sales/${inv.id}`}>View Invoice</Link>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem asChild>
+                            <Link href={`/sales/statement/${inv.customer_id}`}>Customer Statement</Link>
                           </DropdownMenuItem>
                           {inv.status === "draft" && (
                             <DropdownMenuItem onClick={() => markStatus(inv.id, "sent")}>
                               Mark as Sent
                             </DropdownMenuItem>
                           )}
+                          {(inv.status === "sent" || inv.status === "partial" || inv.status === "overdue") && (
+                            <DropdownMenuItem onClick={() => openPaymentDialog(inv)}>
+                              <Banknote className="h-4 w-4 mr-1.5" />
+                              Record Payment
+                            </DropdownMenuItem>
+                          )}
                           {(inv.status === "sent" || inv.status === "partial") && (
                             <DropdownMenuItem onClick={() => markStatus(inv.id, "paid")}>
-                              Mark as Paid
+                              Mark as Fully Paid
                             </DropdownMenuItem>
                           )}
                           <DropdownMenuSeparator />
@@ -369,6 +420,62 @@ export function InvoicesClient({ initialInvoices, totalCount }: Props) {
           </div>
         </div>
       )}
+
+      {/* ── Record Payment Dialog ──────────────────────────────────────── */}
+      <AlertDialog open={!!paymentTarget} onOpenChange={(open) => { if (!open) { setPaymentTarget(null); setPaymentAmount(""); } }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Banknote className="h-5 w-5 text-emerald-600" />
+              Record Payment
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3 text-sm">
+                <p>
+                  Recording payment for <span className="font-semibold text-slate-900">{paymentTarget?.invoice_number}</span>{" "}
+                  ({paymentTarget?.customer_name})
+                </p>
+                <div className="grid grid-cols-2 gap-2 bg-slate-50 rounded-lg p-3 text-xs">
+                  <div>
+                    <span className="text-slate-500">Invoice Total</span>
+                    <p className="font-semibold text-slate-900">KES {KES(paymentTarget?.total_amount ?? 0)}</p>
+                  </div>
+                  <div>
+                    <span className="text-slate-500">Already Paid</span>
+                    <p className="font-semibold text-slate-900">KES {KES(paymentTarget?.amount_paid ?? 0)}</p>
+                  </div>
+                  <div>
+                    <span className="text-slate-500">Balance</span>
+                    <p className="font-semibold text-red-600">KES {KES((paymentTarget?.total_amount ?? 0) - (paymentTarget?.amount_paid ?? 0))}</p>
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-slate-700">Payment Amount (KES)</label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={paymentAmount}
+                    onChange={(e) => setPaymentAmount(e.target.value)}
+                    placeholder="Enter amount…"
+                    className="focus-visible:ring-emerald-500"
+                  />
+                </div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isRecordingPayment}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); recordPayment(); }}
+              disabled={isRecordingPayment}
+              className="bg-emerald-600 hover:bg-emerald-700"
+            >
+              {isRecordingPayment ? "Recording…" : "Record Payment"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -1,15 +1,29 @@
 "use client";
 
+import { useState, useEffect, useCallback } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { usePathname } from "next/navigation";
-import { Menu, LogOut, Settings, User, Bell, ChevronRight } from "lucide-react";
+import { Menu, LogOut, Settings, User, Bell, ChevronRight, Check, Info, AlertTriangle, CheckCircle2, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Popover, PopoverContent, PopoverTrigger,
+} from "@/components/ui/popover";
 import Link from "next/link";
+
+type Notification = {
+  id: string;
+  title: string;
+  message: string;
+  type: string;
+  link: string | null;
+  is_read: boolean;
+  created_at: string;
+};
 
 const routeLabels: Record<string, string> = {
   "/dashboard": "Dashboard",
@@ -44,6 +58,24 @@ function formatRole(role: string | undefined): string {
 
 interface AppHeaderProps { onMobileMenuOpen: () => void }
 
+const notifIcon: Record<string, React.ReactNode> = {
+  info: <Info className="h-4 w-4 text-blue-500 shrink-0" />,
+  success: <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />,
+  warning: <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0" />,
+  error: <XCircle className="h-4 w-4 text-red-500 shrink-0" />,
+};
+
+function timeAgo(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "Just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  return `${days}d ago`;
+}
+
 export default function AppHeader({ onMobileMenuOpen }: AppHeaderProps) {
   const { data: session } = useSession();
   const pathname = usePathname();
@@ -51,6 +83,43 @@ export default function AppHeader({ onMobileMenuOpen }: AppHeaderProps) {
   const userName = session?.user?.name ?? "User";
   const userEmail = session?.user?.email ?? "";
   const userRole = session?.user?.role;
+
+  // Notifications state
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [notifOpen, setNotifOpen] = useState(false);
+
+  const fetchNotifications = useCallback(async () => {
+    try {
+      const res = await fetch("/api/notifications?limit=20");
+      const json = await res.json();
+      if (!res.ok) return;
+      setNotifications(json.data ?? []);
+      setUnreadCount(json.unreadCount ?? 0);
+    } catch {
+      // silent fail
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchNotifications();
+    const interval = setInterval(fetchNotifications, 30000); // poll every 30s
+    return () => clearInterval(interval);
+  }, [fetchNotifications]);
+
+  async function markAllRead() {
+    try {
+      await fetch("/api/notifications", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: [] }),
+      });
+      setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+      setUnreadCount(0);
+    } catch {
+      // silent fail
+    }
+  }
 
   // Build breadcrumb segments from pathname
   const segments = pathname.split("/").filter(Boolean);
@@ -80,10 +149,69 @@ export default function AppHeader({ onMobileMenuOpen }: AppHeaderProps) {
       <div className="flex-1" />
 
       {/* Notification bell */}
-      <Button variant="ghost" size="icon" className="relative text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-xl">
-        <Bell className="h-4.5 w-4.5" />
-        <span className="absolute top-2 right-2 w-2 h-2 bg-indigo-500 rounded-full border-2 border-white" />
-      </Button>
+      <Popover open={notifOpen} onOpenChange={setNotifOpen}>
+        <PopoverTrigger asChild>
+          <Button variant="ghost" size="icon" className="relative text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-xl">
+            <Bell className="h-4.5 w-4.5" />
+            {unreadCount > 0 && (
+              <span className="absolute top-1.5 right-1.5 min-w-4.5 h-4.5 bg-red-500 rounded-full border-2 border-white flex items-center justify-center">
+                <span className="text-[10px] font-bold text-white leading-none">{unreadCount > 9 ? "9+" : unreadCount}</span>
+              </span>
+            )}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent align="end" className="w-80 sm:w-96 p-0 rounded-xl border-slate-200 shadow-xl">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
+            <h3 className="text-sm font-semibold text-slate-900">Notifications</h3>
+            {unreadCount > 0 && (
+              <button
+                onClick={markAllRead}
+                className="flex items-center gap-1 text-xs text-violet-600 hover:text-violet-700 font-medium"
+              >
+                <Check className="h-3 w-3" />
+                Mark all read
+              </button>
+            )}
+          </div>
+          <div className="max-h-80 overflow-y-auto">
+            {notifications.length === 0 ? (
+              <div className="py-10 text-center">
+                <Bell className="h-8 w-8 text-slate-300 mx-auto mb-2" />
+                <p className="text-sm text-slate-500">No notifications yet</p>
+                <p className="text-xs text-slate-400 mt-1">You&apos;ll see updates about orders, stock, and more here</p>
+              </div>
+            ) : (
+              notifications.map((n) => (
+                <div
+                  key={n.id}
+                  className={`flex items-start gap-3 px-4 py-3 border-b border-slate-50 transition-colors ${
+                    n.is_read ? "bg-white" : "bg-violet-50/50"
+                  } hover:bg-slate-50`}
+                >
+                  <div className="mt-0.5">{notifIcon[n.type] ?? notifIcon.info}</div>
+                  <div className="flex-1 min-w-0">
+                    <p className={`text-sm leading-tight ${n.is_read ? "text-slate-700" : "text-slate-900 font-medium"}`}>{n.title}</p>
+                    <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">{n.message}</p>
+                    <p className="text-[10px] text-slate-400 mt-1">{timeAgo(n.created_at)}</p>
+                  </div>
+                  {!n.is_read && <span className="w-2 h-2 rounded-full bg-violet-500 shrink-0 mt-1.5" />}
+                </div>
+              ))
+            )}
+          </div>
+          {notifications.length > 0 && (
+            <div className="px-4 py-2.5 border-t border-slate-100 text-center">
+              <Link
+                href="/notifications"
+                onClick={() => setNotifOpen(false)}
+                className="text-xs text-violet-600 hover:text-violet-700 font-medium"
+              >
+                View all notifications
+              </Link>
+            </div>
+          )}
+        </PopoverContent>
+      </Popover>
 
       {/* User dropdown */}
       <DropdownMenu>

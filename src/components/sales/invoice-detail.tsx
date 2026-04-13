@@ -3,13 +3,14 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Printer, Download, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Printer, Download, CheckCircle2, ReceiptText, Truck } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import Image from "next/image";
 
 type InvoiceItem = {
   id: string;
@@ -58,14 +59,24 @@ const statusConfig: Record<string, { label: string; className: string }> = {
   cancelled: { label: "Cancelled", className: "bg-slate-100 text-slate-400" },
 };
 
+type TenantInfo = {
+  name: string;
+  email: string | null;
+  phone: string | null;
+  address: string | null;
+  city: string | null;
+  kra_pin: string | null;
+  logo_url: string | null;
+};
+
 interface Props {
   invoice: Invoice;
   items: InvoiceItem[];
   customer: Customer;
-  tenantName?: string;
+  tenant?: TenantInfo;
 }
 
-export function InvoiceDetail({ invoice, items, customer, tenantName }: Props) {
+export function InvoiceDetail({ invoice, items, customer, tenant }: Props) {
   const router = useRouter();
   const [paymentAmount, setPaymentAmount] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
@@ -143,6 +154,20 @@ export function InvoiceDetail({ invoice, items, customer, tenantName }: Props) {
                 <CheckCircle2 className="h-4 w-4 mr-2" />Mark as Sent
               </Button>
             )}
+            {invoice.status !== "draft" && invoice.status !== "cancelled" && (
+              <>
+                <Button variant="outline" size="sm" asChild className="gap-2 border-blue-200 text-blue-700 hover:bg-blue-50">
+                  <Link href={`/sales/delivery-note/new?invoice_id=${invoice.id}`}>
+                    <Truck className="h-4 w-4" />Delivery Note
+                  </Link>
+                </Button>
+                <Button variant="outline" size="sm" asChild className="gap-2 border-amber-200 text-amber-700 hover:bg-amber-50">
+                  <Link href={`/sales/credit-note/new?invoice_id=${invoice.id}`}>
+                    <ReceiptText className="h-4 w-4" />Credit Note
+                  </Link>
+                </Button>
+              </>
+            )}
             <Button variant="outline" size="sm" onClick={() => window.print()} className="gap-2">
               <Printer className="h-4 w-4" />Print
             </Button>
@@ -157,15 +182,25 @@ export function InvoiceDetail({ invoice, items, customer, tenantName }: Props) {
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
             <div className="lg:col-span-2 space-y-6">
 
-              {/* Invoice header — shown only in print */}
+              {/* Invoice header — shown only in print, with company logo & details */}
               <div className="hidden print:block mb-6">
                 <div className="flex items-start justify-between">
                   <div>
-                    <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">INVOICE</h1>
-                    <p className="text-slate-500 text-sm mt-1">{tenantName ?? "Kenya ERP"}</p>
+                    {tenant?.logo_url && (
+                      <div className="relative w-14 h-14 mb-2">
+                        <Image src={tenant.logo_url} alt="Logo" fill className="object-contain" />
+                      </div>
+                    )}
+                    <h2 className="text-lg font-bold text-slate-900">{tenant?.name ?? "Company"}</h2>
+                    {tenant?.address && <p className="text-xs text-slate-500">{tenant.address}</p>}
+                    {tenant?.city && <p className="text-xs text-slate-500">{tenant.city}</p>}
+                    {tenant?.phone && <p className="text-xs text-slate-500">Tel: {tenant.phone}</p>}
+                    {tenant?.email && <p className="text-xs text-slate-500">{tenant.email}</p>}
+                    {tenant?.kra_pin && <p className="text-xs text-slate-500">KRA PIN: {tenant.kra_pin}</p>}
                   </div>
                   <div className="text-right">
-                    <p className="text-2xl font-bold text-indigo-600">{invoice.invoice_number}</p>
+                    <h1 className="text-2xl font-extrabold text-indigo-700 uppercase tracking-wide">Invoice</h1>
+                    <p className="text-2xl font-bold text-slate-900 mt-1">{invoice.invoice_number}</p>
                     <span className={`inline-block rounded-full px-3 py-1 text-xs font-semibold mt-1 ${cfg.className}`}>{cfg.label}</span>
                   </div>
                 </div>
@@ -327,6 +362,11 @@ export function InvoiceDetail({ invoice, items, customer, tenantName }: Props) {
                   </div>
                 </div>
               )}
+              {/* Print footer */}
+              <div className="hidden print:block border-t border-slate-200 pt-3 mt-6 text-center">
+                <p className="text-xs text-slate-400">This is a computer-generated invoice and does not require a signature.</p>
+                {tenant?.email && <p className="text-xs text-slate-400">For queries, contact {tenant.email}{tenant?.phone ? ` or call ${tenant.phone}` : ""}</p>}
+              </div>
             </div>
           </div>
         </div>

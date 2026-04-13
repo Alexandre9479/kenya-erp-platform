@@ -38,10 +38,10 @@ export default async function LPODetailPage({ params }: { params: Promise<{ id: 
     .eq("id", poResult.data.supplier_id)
     .single();
 
-  // Fetch tenant name
+  // Fetch full tenant details for print header
   const { data: tenant } = await supabase
     .from("tenants")
-    .select("name")
+    .select("name, email, phone, address, city, kra_pin, logo_url")
     .eq("id", tenantId)
     .single();
 
@@ -50,7 +50,7 @@ export default async function LPODetailPage({ params }: { params: Promise<{ id: 
       po={poResult.data}
       items={itemsResult.data ?? []}
       supplier={supplier ?? null}
-      tenantName={tenant?.name}
+      tenant={tenant ?? undefined}
     />
   );
 }

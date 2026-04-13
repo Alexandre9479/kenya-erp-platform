@@ -115,6 +115,22 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.tenantName = u.tenantName;
         token.tenantLogo = u.tenantLogo;
       }
+
+      // Refresh tenant name + logo from DB on every token refresh so changes
+      // (e.g. logo upload, company rename) appear without re-login
+      if (token.tenantId && !user) {
+        const supabase = await createServiceClient();
+        const { data: t } = await supabase
+          .from("tenants")
+          .select("name, logo_url")
+          .eq("id", token.tenantId as string)
+          .single();
+        if (t) {
+          token.tenantName = t.name;
+          token.tenantLogo = t.logo_url;
+        }
+      }
+
       return token;
     },
 

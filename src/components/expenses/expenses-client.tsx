@@ -19,6 +19,7 @@ import { Separator } from "@/components/ui/separator";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import Image from "next/image";
 
 type Expense = {
   id: string;
@@ -64,12 +65,23 @@ const statusConfig = {
   rejected: { label: "Rejected", icon: XCircle,      className: "bg-red-100 text-red-700 border-red-200" },
 };
 
+type TenantInfo = {
+  name: string;
+  email: string | null;
+  phone: string | null;
+  address: string | null;
+  city: string | null;
+  kra_pin: string | null;
+  logo_url: string | null;
+};
+
 interface Props {
   initialExpenses: Expense[];
   total: number;
+  tenant?: TenantInfo;
 }
 
-export default function ExpensesClient({ initialExpenses, total }: Props) {
+export default function ExpensesClient({ initialExpenses, total, tenant }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [expenses] = useState<Expense[]>(initialExpenses);
@@ -180,9 +192,41 @@ export default function ExpensesClient({ initialExpenses, total }: Props) {
 
   return (
     <>
-      <style>{`@media print { .no-print { display: none !important; } }`}</style>
+      <style>{`
+        @media print {
+          body * { visibility: hidden !important; }
+          #expenses-printable, #expenses-printable * { visibility: visible !important; }
+          #expenses-printable { position: fixed; inset: 0; padding: 24px; background: white; overflow: auto; }
+          .no-print { display: none !important; }
+          .print-only { display: block !important; }
+          @page { margin: 15mm; size: A4 landscape; }
+        }
+      `}</style>
 
-      <div className="space-y-6">
+      <div id="expenses-printable" className="space-y-6">
+        {/* Print-only company header */}
+        <div className="hidden print-only" style={{ display: "none" }}>
+          <div className="flex items-start justify-between mb-4">
+            <div>
+              {tenant?.logo_url && (
+                <div className="relative w-14 h-14 mb-2">
+                  <Image src={tenant.logo_url} alt="Logo" fill className="object-contain" />
+                </div>
+              )}
+              <h2 className="text-lg font-bold text-slate-900">{tenant?.name ?? "Company"}</h2>
+              {tenant?.address && <p className="text-xs text-slate-500">{tenant.address}</p>}
+              {tenant?.city && <p className="text-xs text-slate-500">{tenant.city}</p>}
+              {tenant?.phone && <p className="text-xs text-slate-500">Tel: {tenant.phone}</p>}
+              {tenant?.kra_pin && <p className="text-xs text-slate-500">KRA PIN: {tenant.kra_pin}</p>}
+            </div>
+            <div className="text-right">
+              <h1 className="text-2xl font-extrabold text-indigo-700 uppercase tracking-wide">Expense Report</h1>
+              <p className="text-sm text-slate-500 mt-1">Generated: {new Date().toLocaleDateString("en-KE", { day: "numeric", month: "long", year: "numeric" })}</p>
+            </div>
+          </div>
+          <div className="border-t-2 border-indigo-600 mb-4" />
+        </div>
+
         {/* Header */}
         <div className="flex items-center justify-between no-print">
           <div>

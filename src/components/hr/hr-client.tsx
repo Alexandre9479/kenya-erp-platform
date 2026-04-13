@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useTransition } from "react";
+import Link from "next/link";
 import { toast } from "sonner";
 import {
   Users,
@@ -16,6 +17,9 @@ import {
   TrendingUp,
   Clock,
   Briefcase,
+  CalendarDays,
+  Check,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -52,6 +56,10 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from "@/components/ui/sheet";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import { Textarea } from "@/components/ui/textarea";
 import { EmployeeForm } from "@/components/hr/employee-form";
 import type { Tables } from "@/lib/types/supabase";
 
@@ -196,6 +204,24 @@ export function HRClient({ initialEmployees, totalCount }: HRClientProps) {
   const [payrollYear, setPayrollYear] = useState(now.getFullYear());
   const [payrollData, setPayrollData] = useState<PayrollSummary | null>(null);
   const [isCalculating, setIsCalculating] = useState(false);
+
+  // ── Leave state ─────────────────────────────────────────────────────────
+  type LeaveRow = {
+    id: string; employee_id: string; employee_name: string; leave_type: string;
+    start_date: string; end_date: string; days: number; reason: string | null;
+    status: string; created_at: string;
+  };
+  const [leaveRequests, setLeaveRequests] = useState<LeaveRow[]>([]);
+  const [leaveCount, setLeaveCount] = useState(0);
+  const [leavePage, setLeavePage] = useState(1);
+  const [leaveStatusFilter, setLeaveStatusFilter] = useState("all");
+  const [leaveLoading, setLeaveLoading] = useState(false);
+  const [leaveFormOpen, setLeaveFormOpen] = useState(false);
+  const [leaveSaving, setLeaveSaving] = useState(false);
+  const [leaveForm, setLeaveForm] = useState({
+    employee_id: "", leave_type: "annual" as string,
+    start_date: "", end_date: "", days: 0, reason: "",
+  });
 
   // ── Derived ──────────────────────────────────────────────────────────────
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
@@ -384,6 +410,94 @@ export function HRClient({ initialEmployees, totalCount }: HRClientProps) {
     toast.success("Payroll CSV downloaded.");
   }
 
+  // ─── Leave management ─────────────────────────────────────────────────────
+
+  async function fetchLeave() {
+    setLeaveLoading(true);
+    try {
+      const params = new URLSearchParams({ page: String(leavePage), limit: "25" });
+      if (leaveStatusFilter !== "all") params.set("status", leaveStatusFilter);
+      const res = await fetch(`/api/leave?${params}`);
+      const json = await res.json();
+      if (json.error) throw new Error(json.error);
+      setLeaveRequests(json.data);
+      setLeaveCount(json.count);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to load leave requests");
+    } finally {
+      setLeaveLoading(false);
+    }
+  }
+
+  function calculateDays(start: string, end: string): number {
+    if (!start || !end) return 0;
+    const s = new Date(start);
+    const e = new Date(end);
+    const diff = Math.ceil((e.getTime() - s.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+    return Math.max(0, diff);
+  }
+
+  async function submitLeave() {
+    if (!leaveForm.employee_id || !leaveForm.start_date || !leaveForm.end_date) {
+      toast.error("Please fill all required fields");
+      return;
+    }
+    const days = calculateDays(leaveForm.start_date, leaveForm.end_date);
+    if (days <= 0) { toast.error("End date must be after start date"); return; }
+    setLeaveSaving(true);
+    try {
+      const res = await fetch("/api/leave", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...leaveForm, days }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "Failed");
+      toast.success("Leave request submitted");
+      setLeaveFormOpen(false);
+      setLeaveForm({ employee_id: "", leave_type: "annual", start_date: "", end_date: "", days: 0, reason: "" });
+      fetchLeave();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed");
+    } finally {
+      setLeaveSaving(false);
+    }
+  }
+
+  async function updateLeaveStatus(id: string, status: "approved" | "rejected") {
+    try {
+      const res = await fetch(`/api/leave/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "Failed");
+      toast.success(`Leave request ${status}`);
+      fetchLeave();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed");
+    }
+  }
+
+  const LEAVE_TYPE_CONFIG: Record<string, { label: string; color: string }> = {
+    annual: { label: "Annual", color: "bg-blue-100 text-blue-700" },
+    sick: { label: "Sick", color: "bg-red-100 text-red-700" },
+    maternity: { label: "Maternity", color: "bg-pink-100 text-pink-700" },
+    paternity: { label: "Paternity", color: "bg-cyan-100 text-cyan-700" },
+    compassionate: { label: "Compassionate", color: "bg-amber-100 text-amber-700" },
+    unpaid: { label: "Unpaid", color: "bg-slate-100 text-slate-700" },
+  };
+
+  const LEAVE_STATUS_CONFIG: Record<string, { label: string; color: string }> = {
+    pending: { label: "Pending", color: "bg-amber-100 text-amber-700" },
+    approved: { label: "Approved", color: "bg-emerald-100 text-emerald-700" },
+    rejected: { label: "Rejected", color: "bg-red-100 text-red-700" },
+    cancelled: { label: "Cancelled", color: "bg-slate-100 text-slate-700" },
+  };
+
+  const dateStr = (iso: string) => new Date(iso).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" });
+
   // ─── Render ───────────────────────────────────────────────────────────────
 
   return (
@@ -479,6 +593,10 @@ export function HRClient({ initialEmployees, totalCount }: HRClientProps) {
             <TabsTrigger value="payroll">
               <Calculator className="h-4 w-4 mr-1.5" />
               Payroll
+            </TabsTrigger>
+            <TabsTrigger value="leave" onClick={() => { if (leaveRequests.length === 0) fetchLeave(); }}>
+              <CalendarDays className="h-4 w-4 mr-1.5" />
+              Leave
             </TabsTrigger>
           </TabsList>
         </div>
@@ -746,7 +864,8 @@ export function HRClient({ initialEmployees, totalCount }: HRClientProps) {
                         <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">NHIF/SHIF</TableHead>
                         <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">NSSF (Emp)</TableHead>
                         <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">NSSF (Emplr)</TableHead>
-                        <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider text-right text-blue-700">Net Pay</TableHead>
+                        <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Net Pay</TableHead>
+                        <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider text-center w-20">Payslip</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -767,6 +886,14 @@ export function HRClient({ initialEmployees, totalCount }: HRClientProps) {
                           <TableCell className="text-right font-mono text-sm text-red-600">{formatKES(line.nssf_employee)}</TableCell>
                           <TableCell className="text-right font-mono text-sm text-slate-500">{formatKES(line.nssf_employer)}</TableCell>
                           <TableCell className="text-right font-mono text-sm font-semibold text-blue-700">{formatKES(line.net_pay)}</TableCell>
+                          <TableCell className="text-center">
+                            <Link
+                              href={`/hr/payslip/${line.employee_id}?month=${payrollMonth}&year=${payrollYear}`}
+                              className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold bg-indigo-100 text-indigo-700 hover:bg-indigo-200 transition-colors"
+                            >
+                              View
+                            </Link>
+                          </TableCell>
                         </TableRow>
                       ))}
                       {/* Totals footer row */}
@@ -778,6 +905,7 @@ export function HRClient({ initialEmployees, totalCount }: HRClientProps) {
                         <TableCell className="text-right font-mono text-sm text-red-700">{formatKES(payrollData.total_nssf_employee)}</TableCell>
                         <TableCell className="text-right font-mono text-sm text-slate-600">{formatKES(payrollData.total_nssf_employer)}</TableCell>
                         <TableCell className="text-right font-mono text-sm text-blue-700">{formatKES(payrollData.total_net_pay)}</TableCell>
+                        <TableCell />
                       </TableRow>
                     </TableBody>
                   </Table>
@@ -801,7 +929,188 @@ export function HRClient({ initialEmployees, totalCount }: HRClientProps) {
             </div>
           )}
         </TabsContent>
+
+        {/* ════════════════════════════════════════════════════════════════
+            LEAVE TAB
+            ════════════════════════════════════════════════════════════════ */}
+        <TabsContent value="leave" className="space-y-4 mt-4">
+          {/* Toolbar */}
+          <div className="bg-white rounded-xl border border-slate-200 p-3 flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+            <Select value={leaveStatusFilter} onValueChange={(v) => { setLeaveStatusFilter(v); setLeavePage(1); setTimeout(fetchLeave, 0); }}>
+              <SelectTrigger className="w-44"><SelectValue placeholder="All statuses" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Statuses</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="approved">Approved</SelectItem>
+                <SelectItem value="rejected">Rejected</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button onClick={() => setLeaveFormOpen(true)} className="bg-linear-to-r from-blue-500 to-indigo-600 text-white hover:from-blue-600 hover:to-indigo-700 gap-1.5">
+              <Plus className="h-4 w-4" />
+              New Leave Request
+            </Button>
+          </div>
+
+          {/* Leave Table */}
+          <div className="rounded-xl border border-slate-200 overflow-hidden bg-white shadow-sm">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-slate-50 border-y border-slate-200">
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Employee</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Type</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">From</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">To</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Days</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {leaveLoading ? (
+                  Array.from({ length: 5 }).map((_, i) => (
+                    <TableRow key={i}>{Array.from({ length: 7 }).map((_, j) => <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>)}</TableRow>
+                  ))
+                ) : leaveRequests.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="py-16 text-center">
+                      <div className="flex flex-col items-center">
+                        <div className="w-16 h-16 rounded-2xl bg-linear-to-br from-blue-500 to-indigo-600 flex items-center justify-center mb-4 shadow-lg shadow-blue-500/30">
+                          <CalendarDays className="h-8 w-8 text-white" />
+                        </div>
+                        <p className="font-bold text-slate-800 text-base">No leave requests</p>
+                        <p className="text-sm text-slate-500 mt-1">Submit a leave request to get started</p>
+                        <Button onClick={() => setLeaveFormOpen(true)} className="mt-4 bg-linear-to-r from-blue-500 to-indigo-600 text-white hover:from-blue-600 hover:to-indigo-700">
+                          <Plus className="h-4 w-4 mr-1.5" />
+                          New Leave Request
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  leaveRequests.map((lr) => {
+                    const typeConf = LEAVE_TYPE_CONFIG[lr.leave_type] ?? { label: lr.leave_type, color: "bg-slate-100 text-slate-700" };
+                    const statusConf = LEAVE_STATUS_CONFIG[lr.status] ?? { label: lr.status, color: "bg-slate-100 text-slate-700" };
+                    return (
+                      <TableRow key={lr.id} className="hover:bg-blue-50/20 transition-colors border-b border-slate-100">
+                        <TableCell className="font-medium text-slate-900">{lr.employee_name}</TableCell>
+                        <TableCell><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${typeConf.color}`}>{typeConf.label}</span></TableCell>
+                        <TableCell className="text-slate-500 text-sm">{dateStr(lr.start_date)}</TableCell>
+                        <TableCell className="text-slate-500 text-sm">{dateStr(lr.end_date)}</TableCell>
+                        <TableCell className="text-right font-semibold text-slate-900">{lr.days}</TableCell>
+                        <TableCell><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${statusConf.color}`}>{statusConf.label}</span></TableCell>
+                        <TableCell>
+                          {lr.status === "pending" && (
+                            <div className="flex gap-1">
+                              <Button size="sm" variant="ghost" className="h-7 px-2 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50" onClick={() => updateLeaveStatus(lr.id, "approved")}>
+                                <Check className="h-3.5 w-3.5 mr-1" />Approve
+                              </Button>
+                              <Button size="sm" variant="ghost" className="h-7 px-2 text-red-600 hover:text-red-700 hover:bg-red-50" onClick={() => updateLeaveStatus(lr.id, "rejected")}>
+                                <X className="h-3.5 w-3.5 mr-1" />Reject
+                              </Button>
+                            </div>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </div>
+
+          {leaveCount > 25 && (
+            <div className="flex items-center justify-between text-sm text-slate-500">
+              <span>Showing {(leavePage - 1) * 25 + 1}–{Math.min(leavePage * 25, leaveCount)} of {leaveCount}</span>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" disabled={leavePage === 1} onClick={() => { setLeavePage((p) => p - 1); setTimeout(fetchLeave, 0); }}>Previous</Button>
+                <Button variant="outline" size="sm" disabled={leavePage * 25 >= leaveCount} onClick={() => { setLeavePage((p) => p + 1); setTimeout(fetchLeave, 0); }}>Next</Button>
+              </div>
+            </div>
+          )}
+        </TabsContent>
       </Tabs>
+
+      {/* ── Leave Request Sheet ──────────────────────────────────────── */}
+      <Sheet open={leaveFormOpen} onOpenChange={(o) => { if (!o) setLeaveFormOpen(false); }}>
+        <SheetContent className="w-full sm:max-w-md flex flex-col p-0 overflow-hidden">
+          <div className="h-1.5 w-full bg-linear-to-r from-blue-500 to-indigo-600 shrink-0" />
+          <SheetHeader className="px-6 pt-5 pb-4 shrink-0">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-blue-100">
+                <CalendarDays className="size-4 text-blue-600" />
+              </div>
+              <SheetTitle className="text-slate-900 text-lg font-semibold">New Leave Request</SheetTitle>
+            </div>
+            <SheetDescription className="text-slate-500 text-sm mt-1 ml-12">
+              Submit a leave request for an employee.
+            </SheetDescription>
+          </SheetHeader>
+          <Separator className="shrink-0" />
+          <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+            <div className="space-y-1.5">
+              <Label>Employee <span className="text-red-500">*</span></Label>
+              <Select value={leaveForm.employee_id} onValueChange={(v) => setLeaveForm((f) => ({ ...f, employee_id: v }))}>
+                <SelectTrigger><SelectValue placeholder="Select employee…" /></SelectTrigger>
+                <SelectContent>
+                  {employees.map((e) => <SelectItem key={e.id} value={e.id}>{e.full_name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Leave Type <span className="text-red-500">*</span></Label>
+              <Select value={leaveForm.leave_type} onValueChange={(v) => setLeaveForm((f) => ({ ...f, leave_type: v }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="annual">Annual Leave</SelectItem>
+                  <SelectItem value="sick">Sick Leave</SelectItem>
+                  <SelectItem value="maternity">Maternity Leave</SelectItem>
+                  <SelectItem value="paternity">Paternity Leave</SelectItem>
+                  <SelectItem value="compassionate">Compassionate Leave</SelectItem>
+                  <SelectItem value="unpaid">Unpaid Leave</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label>Start Date <span className="text-red-500">*</span></Label>
+                <Input
+                  type="date"
+                  value={leaveForm.start_date}
+                  onChange={(e) => setLeaveForm((f) => ({ ...f, start_date: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>End Date <span className="text-red-500">*</span></Label>
+                <Input
+                  type="date"
+                  value={leaveForm.end_date}
+                  onChange={(e) => setLeaveForm((f) => ({ ...f, end_date: e.target.value }))}
+                />
+              </div>
+            </div>
+            {leaveForm.start_date && leaveForm.end_date && (
+              <p className="text-sm text-blue-600 font-medium">
+                {calculateDays(leaveForm.start_date, leaveForm.end_date)} day(s)
+              </p>
+            )}
+            <div className="space-y-1.5">
+              <Label>Reason</Label>
+              <Textarea
+                value={leaveForm.reason}
+                onChange={(e) => setLeaveForm((f) => ({ ...f, reason: e.target.value }))}
+                rows={3} placeholder="Optional reason…" className="resize-none"
+              />
+            </div>
+          </div>
+          <Separator className="shrink-0" />
+          <SheetFooter className="px-6 py-4 shrink-0 bg-slate-50 flex flex-row justify-end gap-2">
+            <Button type="button" variant="outline" onClick={() => setLeaveFormOpen(false)}>Cancel</Button>
+            <Button onClick={submitLeave} disabled={leaveSaving} className="bg-blue-600 hover:bg-blue-700 text-white min-w-32">
+              {leaveSaving ? "Submitting…" : "Submit Request"}
+            </Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
 
       {/* ── Employee Form Sheet ───────────────────────────────────────── */}
       <EmployeeForm

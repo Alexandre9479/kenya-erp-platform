@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import {
   Loader2, Building2, FileText, Landmark, Globe,
   Camera, CheckCircle2, AlertTriangle, CreditCard,
-  Upload, Save, Settings2, Palette,
+  Upload, Save, Settings2, Plus, Trash2, Star,
 } from "lucide-react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
@@ -43,13 +43,20 @@ const settingsSchema = z.object({
   quote_prefix: z.string().min(1).max(10),
   lpo_prefix: z.string().min(1).max(10),
   terms_and_conditions: z.string().optional().nullable(),
-  bank_name: z.string().optional().nullable(),
-  bank_account: z.string().optional().nullable(),
-  bank_branch: z.string().optional().nullable(),
   currency: z.string().min(1),
   timezone: z.string().min(1),
 });
 type SettingsFormValues = z.infer<typeof settingsSchema>;
+
+type BankAccount = {
+  id: string;
+  bank_name: string;
+  account_name: string | null;
+  account_number: string;
+  branch: string | null;
+  swift_code: string | null;
+  is_default: boolean;
+};
 
 function getInitials(name: string) {
   return name.split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase();
@@ -103,6 +110,12 @@ export function SettingsForm({ tenant }: { tenant: TenantRow }) {
   const [logoUrl, setLogoUrl] = useState<string | null>(tenant.logo_url);
   const [logoUploading, setLogoUploading] = useState(false);
   const [logoPreview, setLogoPreview] = useState<string | null>(tenant.logo_url);
+
+  // Bank accounts state
+  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
+  const [bankLoading, setBankLoading] = useState(true);
+  const [bankAdding, setBankAdding] = useState(false);
+  const [newBank, setNewBank] = useState({ bank_name: "", account_name: "", account_number: "", branch: "", swift_code: "" });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const daysLeft = trialDaysLeft(tenant.trial_ends_at);
@@ -120,13 +133,77 @@ export function SettingsForm({ tenant }: { tenant: TenantRow }) {
       kra_pin: tenant.kra_pin ?? "",
       invoice_prefix: tenant.invoice_prefix, quote_prefix: tenant.quote_prefix, lpo_prefix: tenant.lpo_prefix,
       terms_and_conditions: tenant.terms_and_conditions ?? "",
-      bank_name: tenant.bank_name ?? "", bank_account: tenant.bank_account ?? "", bank_branch: tenant.bank_branch ?? "",
       currency: tenant.currency, timezone: tenant.timezone,
     },
   });
 
   const currency = watch("currency");
   const timezone = watch("timezone");
+
+  // Fetch bank accounts
+  useEffect(() => {
+    fetchBanks();
+  }, []);
+
+  async function fetchBanks() {
+    setBankLoading(true);
+    try {
+      const res = await fetch("/api/bank-accounts");
+      const json = await res.json();
+      setBankAccounts(json.data ?? []);
+    } catch { /* ignore */ } finally {
+      setBankLoading(false);
+    }
+  }
+
+  async function addBankAccount() {
+    if (!newBank.bank_name || !newBank.account_number) {
+      toast.error("Bank name and account number are required");
+      return;
+    }
+    setBankAdding(true);
+    try {
+      const res = await fetch("/api/bank-accounts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newBank),
+      });
+      if (!res.ok) { const j = await res.json(); throw new Error(j.error ?? "Failed"); }
+      toast.success("Bank account added");
+      setNewBank({ bank_name: "", account_name: "", account_number: "", branch: "", swift_code: "" });
+      fetchBanks();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to add bank account");
+    } finally {
+      setBankAdding(false);
+    }
+  }
+
+  async function removeBankAccount(id: string) {
+    try {
+      const res = await fetch(`/api/bank-accounts/${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Failed");
+      toast.success("Bank account removed");
+      fetchBanks();
+    } catch {
+      toast.error("Failed to remove bank account");
+    }
+  }
+
+  async function setDefaultBank(id: string) {
+    try {
+      const res = await fetch(`/api/bank-accounts/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ is_default: true }),
+      });
+      if (!res.ok) throw new Error("Failed");
+      toast.success("Default bank updated");
+      fetchBanks();
+    } catch {
+      toast.error("Failed to update default bank");
+    }
+  }
 
   async function handleLogoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -286,21 +363,92 @@ export function SettingsForm({ tenant }: { tenant: TenantRow }) {
           </div>
         </SectionCard>
 
-        {/* ── Banking Details ──────────────────────────────────────────── */}
-        <SectionCard icon={Landmark} title="Banking Details" description="Bank account information printed on invoices for customer payments." gradient="from-emerald-500 to-teal-600">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <Field label="Bank Name">
-              <Input {...register("bank_name")} placeholder="Equity Bank Kenya"
-                className="h-10 bg-slate-50 border-slate-200 focus-visible:border-emerald-500 focus-visible:ring-emerald-500/20" />
-            </Field>
-            <Field label="Account Number">
-              <Input {...register("bank_account")} placeholder="0123456789"
-                className="h-10 bg-slate-50 border-slate-200 focus-visible:border-emerald-500 focus-visible:ring-emerald-500/20 font-mono" />
-            </Field>
-            <Field label="Branch">
-              <Input {...register("bank_branch")} placeholder="Nairobi Branch"
-                className="h-10 bg-slate-50 border-slate-200 focus-visible:border-emerald-500 focus-visible:ring-emerald-500/20" />
-            </Field>
+        {/* ── Banking Details (multiple accounts) ────────────────────── */}
+        <SectionCard icon={Landmark} title="Banking Details" description="Bank accounts printed on invoices. Add multiple accounts for different payment methods." gradient="from-emerald-500 to-teal-600">
+          {/* Existing bank accounts */}
+          {bankLoading ? (
+            <div className="text-sm text-slate-400 py-4 text-center">Loading bank accounts…</div>
+          ) : bankAccounts.length === 0 ? (
+            <div className="text-sm text-slate-400 py-4 text-center">No bank accounts added yet</div>
+          ) : (
+            <div className="space-y-3 mb-5">
+              {bankAccounts.map((bank) => (
+                <div key={bank.id} className="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200 group">
+                  <div className="w-9 h-9 rounded-lg bg-emerald-100 flex items-center justify-center shrink-0 mt-0.5">
+                    <Landmark className="h-4 w-4 text-emerald-600" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-semibold text-slate-800 truncate">{bank.bank_name}</p>
+                      {bank.is_default && (
+                        <span className="text-[10px] font-bold bg-emerald-100 text-emerald-700 rounded-full px-2 py-0.5">Default</span>
+                      )}
+                    </div>
+                    <p className="text-xs text-slate-500 font-mono mt-0.5">{bank.account_number}</p>
+                    {bank.account_name && <p className="text-xs text-slate-400">{bank.account_name}</p>}
+                    <div className="flex gap-3 text-xs text-slate-400 mt-0.5">
+                      {bank.branch && <span>{bank.branch}</span>}
+                      {bank.swift_code && <span>SWIFT: {bank.swift_code}</span>}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {!bank.is_default && (
+                      <button type="button" onClick={() => setDefaultBank(bank.id)} title="Set as default"
+                        className="w-7 h-7 rounded-lg hover:bg-emerald-100 flex items-center justify-center text-slate-400 hover:text-emerald-600 transition-colors">
+                        <Star className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                    <button type="button" onClick={() => removeBankAccount(bank.id)} title="Remove"
+                      className="w-7 h-7 rounded-lg hover:bg-red-100 flex items-center justify-center text-slate-400 hover:text-red-600 transition-colors">
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Add new bank account form */}
+          <Separator className="mb-4" />
+          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Add New Bank Account</p>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs text-slate-600">Bank Name *</Label>
+              <Input placeholder="Equity Bank Kenya" value={newBank.bank_name}
+                onChange={(e) => setNewBank((p) => ({ ...p, bank_name: e.target.value }))}
+                className="h-9 bg-slate-50 border-slate-200 focus-visible:border-emerald-500 focus-visible:ring-emerald-500/20 text-sm" />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs text-slate-600">Account Number *</Label>
+              <Input placeholder="0123456789" value={newBank.account_number}
+                onChange={(e) => setNewBank((p) => ({ ...p, account_number: e.target.value }))}
+                className="h-9 bg-slate-50 border-slate-200 focus-visible:border-emerald-500 focus-visible:ring-emerald-500/20 font-mono text-sm" />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs text-slate-600">Account Name</Label>
+              <Input placeholder="Company Trading Account" value={newBank.account_name}
+                onChange={(e) => setNewBank((p) => ({ ...p, account_name: e.target.value }))}
+                className="h-9 bg-slate-50 border-slate-200 focus-visible:border-emerald-500 focus-visible:ring-emerald-500/20 text-sm" />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs text-slate-600">Branch</Label>
+              <Input placeholder="Nairobi Branch" value={newBank.branch}
+                onChange={(e) => setNewBank((p) => ({ ...p, branch: e.target.value }))}
+                className="h-9 bg-slate-50 border-slate-200 focus-visible:border-emerald-500 focus-visible:ring-emerald-500/20 text-sm" />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs text-slate-600">SWIFT Code</Label>
+              <Input placeholder="EABORBI" value={newBank.swift_code}
+                onChange={(e) => setNewBank((p) => ({ ...p, swift_code: e.target.value }))}
+                className="h-9 bg-slate-50 border-slate-200 focus-visible:border-emerald-500 focus-visible:ring-emerald-500/20 font-mono text-sm" />
+            </div>
+            <div className="flex items-end">
+              <Button type="button" onClick={addBankAccount} disabled={bankAdding}
+                className="h-9 bg-emerald-600 hover:bg-emerald-700 text-white text-sm w-full">
+                {bankAdding ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> : <Plus className="mr-2 h-3.5 w-3.5" />}
+                Add Account
+              </Button>
+            </div>
           </div>
         </SectionCard>
 

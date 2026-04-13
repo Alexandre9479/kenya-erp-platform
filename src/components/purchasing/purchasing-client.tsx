@@ -48,8 +48,9 @@ type SupplierRow = {
 
 const statusConfig: Record<string, { label: string; className: string }> = {
   draft: { label: "Draft", className: "bg-slate-100 text-slate-600" },
-  sent: { label: "Sent", className: "bg-blue-100 text-blue-700" },
   approved: { label: "Approved", className: "bg-emerald-100 text-emerald-700" },
+  sent: { label: "Sent", className: "bg-blue-100 text-blue-700" },
+  partial: { label: "Partial", className: "bg-amber-100 text-amber-700" },
   received: { label: "Received", className: "bg-violet-100 text-violet-700" },
   cancelled: { label: "Cancelled", className: "bg-red-100 text-red-600" },
 };
@@ -238,9 +239,9 @@ export function PurchasingClient({ initialPOs, poCount, initialSuppliers, suppli
             </div>
             <div>
               <p className="text-2xl font-bold text-slate-900">
-                {pos.filter((p) => p.status === "approved").length}
+                {pos.filter((p) => p.status === "received").length}
               </p>
-              <p className="text-xs text-slate-500 font-medium">Approved LPOs</p>
+              <p className="text-xs text-slate-500 font-medium">Received LPOs</p>
             </div>
           </div>
         </div>
@@ -321,7 +322,7 @@ export function PurchasingClient({ initialPOs, poCount, initialSuppliers, suppli
                     const cfg = statusConfig[po.status] ?? statusConfig.draft;
                     return (
                       <TableRow key={po.id} className="hover:bg-amber-50/20 transition-colors border-b border-slate-100">
-                        <TableCell className="font-medium text-amber-600">{po.lpo_number}</TableCell>
+                        <TableCell><Link href={`/purchasing/${po.id}`} className="font-medium text-amber-600 hover:text-amber-700 hover:underline">{po.lpo_number}</Link></TableCell>
                         <TableCell className="text-slate-700">{po.supplier_name}</TableCell>
                         <TableCell className="text-slate-500">{dateStr(po.issue_date)}</TableCell>
                         <TableCell className="text-slate-500">{po.expected_date ? dateStr(po.expected_date) : "—"}</TableCell>
@@ -335,17 +336,24 @@ export function PurchasingClient({ initialPOs, poCount, initialSuppliers, suppli
                               <Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="h-4 w-4" /></Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
+                              <DropdownMenuItem asChild>
+                                <Link href={`/purchasing/${po.id}`}>View / Print</Link>
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
                               {po.status === "draft" && (
-                                <DropdownMenuItem onClick={() => updatePOStatus(po.id, "sent")}>Mark as Sent</DropdownMenuItem>
-                              )}
-                              {po.status === "sent" && (
                                 <DropdownMenuItem onClick={() => updatePOStatus(po.id, "approved")}>Approve</DropdownMenuItem>
                               )}
                               {po.status === "approved" && (
-                                <DropdownMenuItem onClick={() => updatePOStatus(po.id, "received")}>Mark Received</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => updatePOStatus(po.id, "sent")}>Mark as Sent</DropdownMenuItem>
+                              )}
+                              {po.status === "sent" && (
+                                <DropdownMenuItem onClick={() => updatePOStatus(po.id, "partial")}>Partial Delivery</DropdownMenuItem>
+                              )}
+                              {(po.status === "sent" || po.status === "partial") && (
+                                <DropdownMenuItem onClick={() => updatePOStatus(po.id, "received")}>Goods Received</DropdownMenuItem>
                               )}
                               <DropdownMenuSeparator />
-                              {po.status === "draft" && (
+                              {(po.status === "draft" || po.status === "approved") && (
                                 <DropdownMenuItem className="text-red-600" onClick={() => updatePOStatus(po.id, "cancelled")}>Cancel</DropdownMenuItem>
                               )}
                             </DropdownMenuContent>
