@@ -233,21 +233,19 @@ export function ReportsClient() {
       `}</style>
 
       {/* ── Module Hero Strip ──────────────────────────────── */}
-      <div className="relative rounded-2xl overflow-hidden bg-linear-to-r from-indigo-600 via-violet-600 to-indigo-700 p-6 text-white shadow-lg no-print">
+      <div className="relative rounded-2xl overflow-hidden bg-linear-to-r from-indigo-600 via-violet-600 to-indigo-700 p-4 sm:p-6 text-white shadow-lg no-print">
         <div className="absolute -top-8 -right-8 w-40 h-40 rounded-full bg-white/10" />
         <div className="absolute -bottom-6 -right-20 w-56 h-56 rounded-full bg-white/5" />
 
-        <div className="relative flex flex-col gap-4">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-sm shadow-inner">
-                <BarChart3 className="size-7 text-white" />
-              </div>
-              <div>
-                <p className="text-indigo-200 text-sm font-medium tracking-wide uppercase">Analytics</p>
-                <h1 className="text-2xl font-bold tracking-tight">Business Reports</h1>
-                <p className="text-indigo-200 text-sm mt-0.5">Financial statements, aging & VAT reports</p>
-              </div>
+        <div className="relative flex flex-col gap-3 sm:gap-4">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <div className="flex items-center justify-center w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-white/20 backdrop-blur-sm shadow-inner shrink-0">
+              <BarChart3 className="size-5 sm:size-7 text-white" />
+            </div>
+            <div>
+              <p className="text-indigo-200 text-xs sm:text-sm font-medium tracking-wide uppercase">Analytics</p>
+              <h1 className="text-lg sm:text-2xl font-bold tracking-tight">Business Reports</h1>
+              <p className="text-indigo-200 text-sm mt-0.5 hidden sm:block">Financial statements, aging & VAT reports</p>
             </div>
           </div>
 
