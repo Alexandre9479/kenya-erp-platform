@@ -12,6 +12,7 @@ const createSchema = z.object({
   description: z.string().optional().nullable(),
 });
 
+
 export async function GET(req: Request) {
   const session = await auth();
   if (!session?.user?.tenantId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -71,3 +72,5 @@ export async function POST(req: Request) {
   }
   return NextResponse.json({ data }, { status: 201 });
 }
+
+
