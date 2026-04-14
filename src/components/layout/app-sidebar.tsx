@@ -7,7 +7,7 @@ import { useSession } from "next-auth/react";
 import {
   LayoutDashboard, Package, ShoppingCart, Truck, Warehouse,
   Calculator, Users, UserCheck, BarChart3, Settings, UserCog,
-  Shield, Building2, ChevronLeft, ChevronRight, Receipt,
+  Shield, Building2, ChevronLeft, ChevronRight, Receipt, Banknote,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -33,6 +33,7 @@ const mainNav: NavItem[] = [
   { href: "/hr", label: "HR & Payroll", icon: Users },
   { href: "/accounting", label: "Accounting", icon: Calculator },
   { href: "/expenses", label: "Expenses", icon: Receipt },
+  { href: "/reconciliation", label: "Reconciliation", icon: Banknote },
   { href: "/reports", label: "Reports", icon: BarChart3 },
 ];
 
