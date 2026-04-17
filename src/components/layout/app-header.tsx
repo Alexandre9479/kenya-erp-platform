@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { usePathname } from "next/navigation";
-import { Menu, LogOut, Settings, User, Bell, ChevronRight, Check, Info, AlertTriangle, CheckCircle2, XCircle } from "lucide-react";
+import { LogOut, Settings, User, Bell, ChevronRight, Check, Info, AlertTriangle, CheckCircle2, XCircle, LayoutGrid, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -26,6 +26,7 @@ type Notification = {
 };
 
 const routeLabels: Record<string, string> = {
+  "/apps": "Apps",
   "/dashboard": "Dashboard",
   "/inventory": "Inventory",
   "/sales": "Sales",
@@ -35,11 +36,25 @@ const routeLabels: Record<string, string> = {
   "/hr": "HR & Payroll",
   "/crm": "CRM",
   "/expenses": "Expenses",
+  "/reconciliation": "Bank Reconciliation",
+  "/supplier-recon": "Supplier Reconciliation",
+  "/fixed-assets": "Fixed Assets",
+  "/budgets": "Budgets",
+  "/etims": "KRA eTIMS",
   "/reports": "Reports",
   "/settings": "Settings",
   "/users": "User Management",
   "/admin": "Super Admin",
 };
+
+const FINANCE_SUB_ROUTES = [
+  "/expenses",
+  "/reconciliation",
+  "/supplier-recon",
+  "/fixed-assets",
+  "/budgets",
+  "/etims",
+];
 
 function getPageLabel(pathname: string): string {
   if (routeLabels[pathname]) return routeLabels[pathname];
@@ -56,7 +71,9 @@ function formatRole(role: string | undefined): string {
   return role.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-interface AppHeaderProps { onMobileMenuOpen: () => void }
+function isFinanceSubroute(pathname: string): boolean {
+  return FINANCE_SUB_ROUTES.some((p) => pathname === p || pathname.startsWith(p + "/"));
+}
 
 const notifIcon: Record<string, React.ReactNode> = {
   info: <Info className="h-4 w-4 text-blue-500 shrink-0" />,
@@ -76,10 +93,14 @@ function timeAgo(iso: string): string {
   return `${days}d ago`;
 }
 
-export default function AppHeader({ onMobileMenuOpen }: AppHeaderProps) {
+export default function AppHeader() {
   const { data: session } = useSession();
   const pathname = usePathname();
   const pageLabel = getPageLabel(pathname);
+  const onApps = pathname === "/apps";
+  const onFinanceChild = isFinanceSubroute(pathname);
+  const backHref = onFinanceChild ? "/accounting" : "/apps";
+  const backLabel = onFinanceChild ? "Accounting" : "Apps";
   const userName = session?.user?.name ?? "User";
   const userEmail = session?.user?.email ?? "";
   const userRole = session?.user?.role;
@@ -125,24 +146,41 @@ export default function AppHeader({ onMobileMenuOpen }: AppHeaderProps) {
   const segments = pathname.split("/").filter(Boolean);
 
   return (
-    <header className="flex h-16 shrink-0 items-center gap-3 border-b border-slate-100 bg-white/95 backdrop-blur-sm px-4 sticky top-0 z-30 shadow-sm">
-      {/* Mobile hamburger */}
-      <Button variant="ghost" size="icon" onClick={onMobileMenuOpen}
-        className="lg:hidden text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-xl">
-        <Menu className="h-5 w-5" />
-      </Button>
+    <header className="flex h-16 shrink-0 items-center gap-2 sm:gap-3 border-b border-slate-100 bg-white/95 backdrop-blur-sm px-3 sm:px-4 sticky top-0 z-30 shadow-sm">
+      {/* Back to Apps / Accounting — hidden on /apps */}
+      {!onApps && (
+        <Button
+          asChild
+          variant="ghost"
+          className="h-9 gap-1.5 px-2 sm:px-3 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl shrink-0"
+        >
+          <Link href={backHref} aria-label={`Back to ${backLabel}`}>
+            <ArrowLeft className="h-4 w-4" />
+            <span className="hidden sm:inline text-sm font-medium">{backLabel}</span>
+          </Link>
+        </Button>
+      )}
+
+      {/* Apps shortcut on /apps itself */}
+      {onApps && (
+        <div className="flex items-center gap-2 shrink-0">
+          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-linear-to-br from-indigo-500 to-violet-600 text-white shadow-md shadow-indigo-500/30">
+            <LayoutGrid className="h-4 w-4" />
+          </div>
+        </div>
+      )}
 
       {/* Breadcrumb */}
       <div className="flex items-center gap-1.5 min-w-0">
-        <span className="text-slate-400 text-sm hidden sm:block">{session?.user?.tenantName ?? "Kenya ERP"}</span>
-        {segments.length > 0 && (
+        <span className="text-slate-400 text-sm hidden md:block truncate">{session?.user?.tenantName ?? "Kenya ERP"}</span>
+        {!onApps && segments.length > 0 && (
           <>
-            <ChevronRight className="h-3.5 w-3.5 text-slate-300 hidden sm:block shrink-0" />
+            <ChevronRight className="h-3.5 w-3.5 text-slate-300 hidden md:block shrink-0" />
             <h1 className="text-sm font-semibold text-slate-900 truncate">{pageLabel}</h1>
           </>
         )}
-        {segments.length === 0 && (
-          <h1 className="text-sm font-semibold text-slate-900">{pageLabel}</h1>
+        {onApps && (
+          <h1 className="text-sm font-semibold text-slate-900 truncate md:hidden">Apps</h1>
         )}
       </div>
 

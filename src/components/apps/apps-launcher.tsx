@@ -174,13 +174,13 @@ export function AppsLauncher({ userName, tenantName }: Props) {
     <div className="-m-4 md:-m-6 min-h-[calc(100vh-4rem)]">
       {/* Hero */}
       <div
-        className="relative overflow-hidden px-4 md:px-10 pt-10 pb-16"
+        className="relative overflow-hidden px-4 sm:px-6 md:px-10 pt-8 sm:pt-10 pb-14 sm:pb-16"
         style={{ background: "linear-gradient(135deg, #0f0c29 0%, #302b63 55%, #24243e 100%)" }}
       >
         <div className="absolute inset-0 opacity-30 pointer-events-none">
-          <div className="absolute -top-24 -left-24 w-96 h-96 rounded-full bg-indigo-500 blur-3xl" />
-          <div className="absolute -bottom-24 -right-16 w-[28rem] h-[28rem] rounded-full bg-violet-500 blur-3xl" />
-          <div className="absolute top-1/3 left-1/3 w-72 h-72 rounded-full bg-fuchsia-500/60 blur-3xl" />
+          <div className="absolute -top-24 -left-24 w-72 sm:w-96 h-72 sm:h-96 rounded-full bg-indigo-500 blur-3xl" />
+          <div className="absolute -bottom-24 -right-16 w-80 sm:w-md h-80 sm:h-112 rounded-full bg-violet-500 blur-3xl" />
+          <div className="absolute top-1/3 left-1/3 w-56 sm:w-72 h-56 sm:h-72 rounded-full bg-fuchsia-500/60 blur-3xl" />
         </div>
 
         <div className="relative mx-auto max-w-7xl">
@@ -188,22 +188,22 @@ export function AppsLauncher({ userName, tenantName }: Props) {
             <Sparkles className="h-3.5 w-3.5" />
             <span>Kenya ERP Platform</span>
           </div>
-          <h1 className="mt-4 text-3xl md:text-5xl font-bold tracking-tight text-white">
+          <h1 className="mt-4 text-2xl sm:text-3xl md:text-5xl font-bold tracking-tight text-white">
             {greeting}, {firstName}.
           </h1>
-          <p className="mt-2 text-slate-300 text-base md:text-lg max-w-2xl">
+          <p className="mt-2 text-slate-300 text-sm sm:text-base md:text-lg max-w-2xl">
             Pick an app to get started at <span className="text-white font-semibold">{tenantName}</span>.
             Related tools are grouped together — finance, operations, people and intelligence.
           </p>
 
-          <div className="mt-7 max-w-xl">
+          <div className="mt-6 sm:mt-7 max-w-xl">
             <div className="relative">
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <Input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search apps — try 'payroll', 'invoice', 'eTIMS'…"
-                className="pl-10 h-12 bg-white/10 border-white/10 text-white placeholder:text-slate-400 focus-visible:ring-2 focus-visible:ring-indigo-400/50 focus-visible:border-indigo-400/50 rounded-xl"
+                className="pl-10 h-11 sm:h-12 bg-white/10 border-white/10 text-white placeholder:text-slate-400 focus-visible:ring-2 focus-visible:ring-indigo-400/50 focus-visible:border-indigo-400/50 rounded-xl"
               />
             </div>
           </div>
@@ -211,8 +211,8 @@ export function AppsLauncher({ userName, tenantName }: Props) {
       </div>
 
       {/* App grid */}
-      <div className="-mt-10 px-4 md:px-10 pb-16">
-        <div className="mx-auto max-w-7xl space-y-10">
+      <div className="-mt-10 px-4 sm:px-6 md:px-10 pb-12 sm:pb-16">
+        <div className="mx-auto max-w-7xl space-y-8 sm:space-y-10">
           {CATEGORY_ORDER.map((cat) => {
             const items = grouped.get(cat) ?? [];
             if (items.length === 0) return null;

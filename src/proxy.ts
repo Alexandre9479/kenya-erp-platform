@@ -17,7 +17,7 @@ export default auth((req) => {
       if (role === "super_admin") {
         return NextResponse.redirect(new URL("/admin", nextUrl));
       }
-      return NextResponse.redirect(new URL("/dashboard", nextUrl));
+      return NextResponse.redirect(new URL("/apps", nextUrl));
     }
     return NextResponse.next();
   }
@@ -33,7 +33,7 @@ export default auth((req) => {
   if (path.startsWith("/admin")) {
     const role = (session.user as { role?: string })?.role;
     if (role !== "super_admin") {
-      return NextResponse.redirect(new URL("/dashboard", nextUrl));
+      return NextResponse.redirect(new URL("/apps", nextUrl));
     }
   }
 

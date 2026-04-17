@@ -41,7 +41,7 @@ function LoginForm() {
         return;
       }
       toast.success("Welcome back!");
-      router.push("/dashboard");
+      router.push("/apps");
       router.refresh();
     } catch {
       toast.error("Something went wrong. Please try again.");
