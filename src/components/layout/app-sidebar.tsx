@@ -7,7 +7,7 @@ import { useSession } from "next-auth/react";
 import {
   LayoutDashboard, Package, ShoppingCart, Truck, Warehouse,
   Calculator, Users, UserCheck, BarChart3, Settings, UserCog,
-  Shield, Building2, ChevronLeft, ChevronRight, Receipt, Banknote, FileCheck2, Building, Wallet, ReceiptText,
+  Shield, Building2, ChevronLeft, ChevronRight, LayoutGrid,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -21,9 +21,20 @@ interface NavItem {
   icon: React.ElementType;
   roles?: UserRole[];
   badge?: string;
+  matchPaths?: string[];
 }
 
+const ACCOUNTING_CHILDREN = [
+  "/expenses",
+  "/reconciliation",
+  "/supplier-recon",
+  "/fixed-assets",
+  "/budgets",
+  "/etims",
+];
+
 const mainNav: NavItem[] = [
+  { href: "/apps", label: "Apps", icon: LayoutGrid },
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/sales", label: "Sales", icon: ShoppingCart },
   { href: "/purchasing", label: "Purchasing", icon: Truck },
@@ -31,13 +42,7 @@ const mainNav: NavItem[] = [
   { href: "/warehouse", label: "Warehouse", icon: Warehouse },
   { href: "/crm", label: "CRM", icon: UserCheck },
   { href: "/hr", label: "HR & Payroll", icon: Users },
-  { href: "/accounting", label: "Accounting", icon: Calculator },
-  { href: "/expenses", label: "Expenses", icon: Receipt },
-  { href: "/reconciliation", label: "Bank Recon", icon: Banknote },
-  { href: "/supplier-recon", label: "Supplier Recon", icon: FileCheck2 },
-  { href: "/fixed-assets", label: "Fixed Assets", icon: Building },
-  { href: "/budgets", label: "Budgets", icon: Wallet },
-  { href: "/etims", label: "KRA eTIMS", icon: ReceiptText },
+  { href: "/accounting", label: "Accounting", icon: Calculator, matchPaths: ACCOUNTING_CHILDREN },
   { href: "/reports", label: "Reports", icon: BarChart3 },
 ];
 
@@ -48,7 +53,11 @@ const adminNav: NavItem[] = [
 ];
 
 function NavLink({ item, collapsed, pathname }: { item: NavItem; collapsed: boolean; pathname: string }) {
-  const isActive = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href));
+  const matchesChild = item.matchPaths?.some((p) => pathname === p || pathname.startsWith(p + "/")) ?? false;
+  const isActive =
+    pathname === item.href ||
+    (item.href !== "/dashboard" && item.href !== "/apps" && pathname.startsWith(item.href + "/")) ||
+    matchesChild;
   const Icon = item.icon;
 
   const inner = (

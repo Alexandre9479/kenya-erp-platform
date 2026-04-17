@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { createServiceClient } from "@/lib/supabase/server";
 import { AccountingClient } from "@/components/accounting/accounting-client";
+import { FinanceSuiteStrip } from "@/components/accounting/finance-suite-strip";
 
 export const metadata: Metadata = { title: "Accounting & Finance" };
 
@@ -33,8 +34,9 @@ export default async function AccountingPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-slate-900">Accounting & Finance</h1>
-        <p className="text-sm text-slate-500 mt-1">Chart of accounts and double-entry journals</p>
+        <p className="text-sm text-slate-500 mt-1">Chart of accounts, journals and the full finance suite</p>
       </div>
+      <FinanceSuiteStrip />
       <AccountingClient
         initialAccounts={accountsResult.data ?? []}
         accountCount={accountsResult.count ?? 0}
