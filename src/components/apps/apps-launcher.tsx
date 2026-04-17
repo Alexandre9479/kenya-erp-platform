@@ -15,8 +15,12 @@ import {
   Search,
   ArrowUpRight,
   Sparkles,
+  UserCog,
+  Settings,
+  Shield,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import type { UserRole } from "@/lib/types/supabase";
 
 type AppCard = {
   href: string;
@@ -25,9 +29,21 @@ type AppCard = {
   icon: React.ElementType;
   gradient: string;
   glow: string;
-  category: "Operations" | "People" | "Finance" | "Intelligence";
+  category: "Operations" | "People" | "Finance" | "Intelligence" | "Admin";
   keywords?: string[];
+  roles: UserRole[];
 };
+
+const ALL_OPERATIONAL: UserRole[] = [
+  "super_admin",
+  "tenant_admin",
+  "accountant",
+  "sales",
+  "purchasing",
+  "warehouse",
+  "hr",
+  "viewer",
+];
 
 const APPS: AppCard[] = [
   {
@@ -39,6 +55,7 @@ const APPS: AppCard[] = [
     glow: "shadow-slate-500/20",
     category: "Intelligence",
     keywords: ["home", "overview", "kpi"],
+    roles: ALL_OPERATIONAL,
   },
   {
     href: "/sales",
@@ -49,6 +66,7 @@ const APPS: AppCard[] = [
     glow: "shadow-emerald-500/30",
     category: "Operations",
     keywords: ["quotes", "invoices", "orders", "customers"],
+    roles: ["super_admin", "tenant_admin", "sales", "accountant", "viewer"],
   },
   {
     href: "/purchasing",
@@ -59,6 +77,7 @@ const APPS: AppCard[] = [
     glow: "shadow-amber-500/30",
     category: "Operations",
     keywords: ["po", "supplier", "rfq", "bills"],
+    roles: ["super_admin", "tenant_admin", "purchasing", "accountant", "viewer"],
   },
   {
     href: "/inventory",
@@ -69,6 +88,7 @@ const APPS: AppCard[] = [
     glow: "shadow-sky-500/30",
     category: "Operations",
     keywords: ["stock", "products", "sku"],
+    roles: ["super_admin", "tenant_admin", "warehouse", "sales", "viewer"],
   },
   {
     href: "/warehouse",
@@ -79,6 +99,7 @@ const APPS: AppCard[] = [
     glow: "shadow-cyan-500/30",
     category: "Operations",
     keywords: ["receipts", "transfers", "bin"],
+    roles: ["super_admin", "tenant_admin", "warehouse", "viewer"],
   },
   {
     href: "/crm",
@@ -89,6 +110,7 @@ const APPS: AppCard[] = [
     glow: "shadow-fuchsia-500/30",
     category: "People",
     keywords: ["leads", "pipeline", "deals"],
+    roles: ["super_admin", "tenant_admin", "sales", "viewer"],
   },
   {
     href: "/hr",
@@ -99,6 +121,7 @@ const APPS: AppCard[] = [
     glow: "shadow-violet-500/30",
     category: "People",
     keywords: ["payroll", "employees", "paye", "nssf", "shif"],
+    roles: ["super_admin", "tenant_admin", "hr", "viewer"],
   },
   {
     href: "/accounting",
@@ -122,6 +145,7 @@ const APPS: AppCard[] = [
       "vat",
       "tax",
     ],
+    roles: ["super_admin", "tenant_admin", "accountant", "viewer"],
   },
   {
     href: "/reports",
@@ -132,27 +156,64 @@ const APPS: AppCard[] = [
     glow: "shadow-rose-500/30",
     category: "Intelligence",
     keywords: ["p&l", "balance sheet", "cashflow"],
+    roles: ["super_admin", "tenant_admin", "accountant", "viewer"],
+  },
+  {
+    href: "/users",
+    title: "User Management",
+    description: "Invite staff, assign roles (accountant, sales, HR…) and control who sees what.",
+    icon: UserCog,
+    gradient: "from-indigo-600 to-blue-700",
+    glow: "shadow-indigo-500/30",
+    category: "Admin",
+    keywords: ["staff", "invite", "roles", "permissions", "access"],
+    roles: ["super_admin", "tenant_admin"],
+  },
+  {
+    href: "/settings",
+    title: "Company Settings",
+    description: "Logo, KRA PIN, document prefixes, bank details and regional preferences.",
+    icon: Settings,
+    gradient: "from-slate-600 to-slate-800",
+    glow: "shadow-slate-500/20",
+    category: "Admin",
+    keywords: ["company", "prefixes", "logo", "kra pin", "currency"],
+    roles: ["super_admin", "tenant_admin"],
+  },
+  {
+    href: "/admin",
+    title: "Super Admin",
+    description: "Platform-wide tenant, plan and billing administration.",
+    icon: Shield,
+    gradient: "from-red-600 to-rose-700",
+    glow: "shadow-red-500/30",
+    category: "Admin",
+    keywords: ["platform", "tenants", "billing"],
+    roles: ["super_admin"],
   },
 ];
 
-const CATEGORY_ORDER: AppCard["category"][] = ["Operations", "People", "Finance", "Intelligence"];
+const CATEGORY_ORDER: AppCard["category"][] = ["Operations", "People", "Finance", "Intelligence", "Admin"];
 
 interface Props {
   userName: string;
   tenantName: string;
+  role: UserRole;
 }
 
-export function AppsLauncher({ userName, tenantName }: Props) {
+export function AppsLauncher({ userName, tenantName, role }: Props) {
   const [query, setQuery] = useState("");
+
+  const visible = useMemo(() => APPS.filter((a) => a.roles.includes(role)), [role]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return APPS;
-    return APPS.filter((a) => {
+    if (!q) return visible;
+    return visible.filter((a) => {
       const hay = [a.title, a.description, a.category, ...(a.keywords ?? [])].join(" ").toLowerCase();
       return hay.includes(q);
     });
-  }, [query]);
+  }, [query, visible]);
 
   const grouped = useMemo(() => {
     const map = new Map<AppCard["category"], AppCard[]>();
@@ -184,9 +245,15 @@ export function AppsLauncher({ userName, tenantName }: Props) {
         </div>
 
         <div className="relative mx-auto max-w-7xl">
-          <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-indigo-200 backdrop-blur">
-            <Sparkles className="h-3.5 w-3.5" />
-            <span>Kenya ERP Platform</span>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-indigo-200 backdrop-blur">
+              <Sparkles className="h-3.5 w-3.5" />
+              <span>Kenya ERP Platform</span>
+            </div>
+            <div className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white/90 backdrop-blur">
+              <Shield className="h-3.5 w-3.5 text-indigo-300" />
+              <span className="capitalize">{role.replace("_", " ")}</span>
+            </div>
           </div>
           <h1 className="mt-4 text-2xl sm:text-3xl md:text-5xl font-bold tracking-tight text-white">
             {greeting}, {firstName}.

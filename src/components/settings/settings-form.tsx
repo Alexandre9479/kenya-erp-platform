@@ -28,6 +28,10 @@ export type TenantRow = {
   trial_ends_at: string | null; is_active: boolean;
   bank_name: string | null; bank_account: string | null; bank_branch: string | null;
   invoice_prefix: string; quote_prefix: string; lpo_prefix: string;
+  credit_note_prefix: string | null; delivery_note_prefix: string | null;
+  asset_prefix: string | null; receipt_prefix: string | null;
+  payment_prefix: string | null; expense_prefix: string | null;
+  journal_prefix: string | null; bill_prefix: string | null; grn_prefix: string | null;
   terms_and_conditions: string | null; created_at: string; updated_at: string;
 };
 
@@ -42,6 +46,15 @@ const settingsSchema = z.object({
   invoice_prefix: z.string().min(1).max(10),
   quote_prefix: z.string().min(1).max(10),
   lpo_prefix: z.string().min(1).max(10),
+  credit_note_prefix: z.string().min(1).max(10),
+  delivery_note_prefix: z.string().min(1).max(10),
+  asset_prefix: z.string().min(1).max(10),
+  receipt_prefix: z.string().min(1).max(10),
+  payment_prefix: z.string().min(1).max(10),
+  expense_prefix: z.string().min(1).max(10),
+  journal_prefix: z.string().min(1).max(10),
+  bill_prefix: z.string().min(1).max(10),
+  grn_prefix: z.string().min(1).max(10),
   terms_and_conditions: z.string().optional().nullable(),
   currency: z.string().min(1),
   timezone: z.string().min(1),
@@ -132,6 +145,15 @@ export function SettingsForm({ tenant }: { tenant: TenantRow }) {
       city: tenant.city ?? "", country: tenant.country,
       kra_pin: tenant.kra_pin ?? "",
       invoice_prefix: tenant.invoice_prefix, quote_prefix: tenant.quote_prefix, lpo_prefix: tenant.lpo_prefix,
+      credit_note_prefix: tenant.credit_note_prefix ?? "CN",
+      delivery_note_prefix: tenant.delivery_note_prefix ?? "DN",
+      asset_prefix: tenant.asset_prefix ?? "FA",
+      receipt_prefix: tenant.receipt_prefix ?? "RCT",
+      payment_prefix: tenant.payment_prefix ?? "PV",
+      expense_prefix: tenant.expense_prefix ?? "EXP",
+      journal_prefix: tenant.journal_prefix ?? "JE",
+      bill_prefix: tenant.bill_prefix ?? "BILL",
+      grn_prefix: tenant.grn_prefix ?? "GRN",
       terms_and_conditions: tenant.terms_and_conditions ?? "",
       currency: tenant.currency, timezone: tenant.timezone,
     },
@@ -453,22 +475,80 @@ export function SettingsForm({ tenant }: { tenant: TenantRow }) {
         </SectionCard>
 
         {/* ── Document Settings ────────────────────────────────────────── */}
-        <SectionCard icon={FileText} title="Document Settings" description="Number prefixes and default terms applied to all outgoing documents." gradient="from-amber-500 to-orange-500">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <Field label="Invoice Prefix" error={errors.invoice_prefix?.message} hint="e.g. INV → INV-000001">
-              <Input {...register("invoice_prefix")} placeholder="INV"
-                className={`h-10 bg-slate-50 border-slate-200 focus-visible:border-amber-500 focus-visible:ring-amber-500/20 font-mono ${errors.invoice_prefix ? "border-red-400" : ""}`} />
-            </Field>
-            <Field label="Quote Prefix" error={errors.quote_prefix?.message} hint="e.g. QT → QT-000001">
-              <Input {...register("quote_prefix")} placeholder="QT"
-                className={`h-10 bg-slate-50 border-slate-200 focus-visible:border-amber-500 focus-visible:ring-amber-500/20 font-mono ${errors.quote_prefix ? "border-red-400" : ""}`} />
-            </Field>
-            <Field label="LPO Prefix" error={errors.lpo_prefix?.message} hint="e.g. LPO → LPO-000001">
-              <Input {...register("lpo_prefix")} placeholder="LPO"
-                className={`h-10 bg-slate-50 border-slate-200 focus-visible:border-amber-500 focus-visible:ring-amber-500/20 font-mono ${errors.lpo_prefix ? "border-red-400" : ""}`} />
-            </Field>
-          </div>
-          <div className="mt-4">
+        <SectionCard icon={FileText} title="Document Settings" description="Number prefixes applied to every document generated across the platform." gradient="from-amber-500 to-orange-500">
+          <div className="space-y-5">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-400 mb-2">Sales</p>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <Field label="Invoice" error={errors.invoice_prefix?.message} hint="e.g. INV → INV-000001">
+                  <Input {...register("invoice_prefix")} placeholder="INV"
+                    className={`h-10 bg-slate-50 border-slate-200 focus-visible:border-amber-500 focus-visible:ring-amber-500/20 font-mono ${errors.invoice_prefix ? "border-red-400" : ""}`} />
+                </Field>
+                <Field label="Quote" error={errors.quote_prefix?.message} hint="e.g. QT → QT-000001">
+                  <Input {...register("quote_prefix")} placeholder="QT"
+                    className={`h-10 bg-slate-50 border-slate-200 focus-visible:border-amber-500 focus-visible:ring-amber-500/20 font-mono ${errors.quote_prefix ? "border-red-400" : ""}`} />
+                </Field>
+                <Field label="Credit Note" error={errors.credit_note_prefix?.message} hint="e.g. CN → CN-000001">
+                  <Input {...register("credit_note_prefix")} placeholder="CN"
+                    className={`h-10 bg-slate-50 border-slate-200 focus-visible:border-amber-500 focus-visible:ring-amber-500/20 font-mono ${errors.credit_note_prefix ? "border-red-400" : ""}`} />
+                </Field>
+                <Field label="Delivery Note" error={errors.delivery_note_prefix?.message} hint="e.g. DN → DN-000001">
+                  <Input {...register("delivery_note_prefix")} placeholder="DN"
+                    className={`h-10 bg-slate-50 border-slate-200 focus-visible:border-amber-500 focus-visible:ring-amber-500/20 font-mono ${errors.delivery_note_prefix ? "border-red-400" : ""}`} />
+                </Field>
+                <Field label="Receipt" error={errors.receipt_prefix?.message} hint="e.g. RCT → RCT-000001">
+                  <Input {...register("receipt_prefix")} placeholder="RCT"
+                    className={`h-10 bg-slate-50 border-slate-200 focus-visible:border-amber-500 focus-visible:ring-amber-500/20 font-mono ${errors.receipt_prefix ? "border-red-400" : ""}`} />
+                </Field>
+              </div>
+            </div>
+
+            <Separator className="opacity-60" />
+
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-400 mb-2">Purchasing</p>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <Field label="Local Purchase Order" error={errors.lpo_prefix?.message} hint="e.g. LPO → LPO-000001">
+                  <Input {...register("lpo_prefix")} placeholder="LPO"
+                    className={`h-10 bg-slate-50 border-slate-200 focus-visible:border-amber-500 focus-visible:ring-amber-500/20 font-mono ${errors.lpo_prefix ? "border-red-400" : ""}`} />
+                </Field>
+                <Field label="Supplier Bill" error={errors.bill_prefix?.message} hint="e.g. BILL → BILL-000001">
+                  <Input {...register("bill_prefix")} placeholder="BILL"
+                    className={`h-10 bg-slate-50 border-slate-200 focus-visible:border-amber-500 focus-visible:ring-amber-500/20 font-mono ${errors.bill_prefix ? "border-red-400" : ""}`} />
+                </Field>
+                <Field label="Goods Received Note" error={errors.grn_prefix?.message} hint="e.g. GRN → GRN-000001">
+                  <Input {...register("grn_prefix")} placeholder="GRN"
+                    className={`h-10 bg-slate-50 border-slate-200 focus-visible:border-amber-500 focus-visible:ring-amber-500/20 font-mono ${errors.grn_prefix ? "border-red-400" : ""}`} />
+                </Field>
+              </div>
+            </div>
+
+            <Separator className="opacity-60" />
+
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-400 mb-2">Finance</p>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <Field label="Payment Voucher" error={errors.payment_prefix?.message} hint="e.g. PV → PV-000001">
+                  <Input {...register("payment_prefix")} placeholder="PV"
+                    className={`h-10 bg-slate-50 border-slate-200 focus-visible:border-amber-500 focus-visible:ring-amber-500/20 font-mono ${errors.payment_prefix ? "border-red-400" : ""}`} />
+                </Field>
+                <Field label="Expense" error={errors.expense_prefix?.message} hint="e.g. EXP → EXP-000001">
+                  <Input {...register("expense_prefix")} placeholder="EXP"
+                    className={`h-10 bg-slate-50 border-slate-200 focus-visible:border-amber-500 focus-visible:ring-amber-500/20 font-mono ${errors.expense_prefix ? "border-red-400" : ""}`} />
+                </Field>
+                <Field label="Journal Entry" error={errors.journal_prefix?.message} hint="e.g. JE → JE-000001">
+                  <Input {...register("journal_prefix")} placeholder="JE"
+                    className={`h-10 bg-slate-50 border-slate-200 focus-visible:border-amber-500 focus-visible:ring-amber-500/20 font-mono ${errors.journal_prefix ? "border-red-400" : ""}`} />
+                </Field>
+                <Field label="Fixed Asset" error={errors.asset_prefix?.message} hint="e.g. FA → FA-000001">
+                  <Input {...register("asset_prefix")} placeholder="FA"
+                    className={`h-10 bg-slate-50 border-slate-200 focus-visible:border-amber-500 focus-visible:ring-amber-500/20 font-mono ${errors.asset_prefix ? "border-red-400" : ""}`} />
+                </Field>
+              </div>
+            </div>
+
+            <Separator className="opacity-60" />
+
             <Field label="Default Terms & Conditions" hint="Printed at the bottom of every invoice and quote">
               <Textarea {...register("terms_and_conditions")}
                 placeholder="e.g. Payment is due within 30 days of invoice date. Late payments attract a 2% monthly interest charge. Goods remain the property of the seller until full payment is received."

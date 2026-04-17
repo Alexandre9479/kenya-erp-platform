@@ -39,6 +39,15 @@ export interface Database {
           invoice_prefix: string;
           quote_prefix: string;
           lpo_prefix: string;
+          credit_note_prefix: string | null;
+          delivery_note_prefix: string | null;
+          asset_prefix: string | null;
+          receipt_prefix: string | null;
+          payment_prefix: string | null;
+          expense_prefix: string | null;
+          journal_prefix: string | null;
+          bill_prefix: string | null;
+          grn_prefix: string | null;
           terms_and_conditions: string | null;
           created_at: string;
           updated_at: string;
