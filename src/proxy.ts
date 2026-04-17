@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 // Public paths that don't need authentication
 const PUBLIC_PATHS = ["/login", "/register", "/api/auth"];
 
+
 export default auth((req) => {
   const { nextUrl, auth: session } = req;
   const path = nextUrl.pathname;
