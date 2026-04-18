@@ -12,7 +12,8 @@ export default async function ExpensesPage() {
   const tenantId = session.user.tenantId;
 
   const supabase = await createServiceClient();
-  const [{ data, count }, { data: tenant }] = await Promise.all([
+  const db = supabase as any;
+  const [{ data, count }, { data: tenant }, { data: channels }] = await Promise.all([
     supabase
       .from("expenses")
       .select("*", { count: "exact" })
@@ -24,6 +25,13 @@ export default async function ExpensesPage() {
       .select("name, email, phone, address, city, kra_pin, logo_url")
       .eq("id", tenantId)
       .single(),
+    db
+      .from("payment_channels")
+      .select("id, name, channel_type, is_default, is_active")
+      .eq("tenant_id", tenantId)
+      .eq("is_active", true)
+      .order("is_default", { ascending: false })
+      .order("name", { ascending: true }),
   ]);
 
   return (
@@ -31,6 +39,7 @@ export default async function ExpensesPage() {
       initialExpenses={(data ?? []) as Parameters<typeof ExpensesClient>[0]["initialExpenses"]}
       total={count ?? 0}
       tenant={tenant ?? undefined}
+      paymentChannels={(channels ?? []) as Parameters<typeof ExpensesClient>[0]["paymentChannels"]}
     />
   );
 }

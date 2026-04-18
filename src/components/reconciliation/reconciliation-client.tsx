@@ -27,6 +27,15 @@ import {
 import { cn } from "@/lib/utils";
 
 type BankAccount = { id: string; bank_name: string; account_number: string; branch: string | null; is_default: boolean };
+type PaymentChannel = {
+  id: string;
+  name: string;
+  channel_type: "cash" | "mpesa_till" | "mpesa_paybill" | "mpesa_send" | "bank" | "cheque" | "card" | "other";
+  mpesa_shortcode: string | null;
+  is_default: boolean;
+  is_active: boolean;
+  bank_account_id: string | null;
+};
 type Statement = {
   id: string;
   statement_date: string;
@@ -37,8 +46,18 @@ type Statement = {
   source: string;
   filename: string | null;
   line_count: number;
-  bank_account_id: string;
+  bank_account_id: string | null;
+  payment_channel_id?: string | null;
   bank_accounts?: { bank_name: string; account_number: string } | null;
+  payment_channels?: { name: string; channel_type: string; mpesa_shortcode: string | null } | null;
+};
+
+const sourceLabel = (s: Pick<Statement, "bank_accounts" | "payment_channels">) => {
+  if (s.bank_accounts) return `${s.bank_accounts.bank_name} — ${s.bank_accounts.account_number}`;
+  if (s.payment_channels) {
+    return `${s.payment_channels.name}${s.payment_channels.mpesa_shortcode ? ` (${s.payment_channels.mpesa_shortcode})` : ""}`;
+  }
+  return "—";
 };
 
 type Line = {
@@ -74,21 +93,44 @@ const money = (n: number | string | null | undefined) => {
   return v.toLocaleString("en-KE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
+const CHANNEL_TYPE_LABEL: Record<PaymentChannel["channel_type"], string> = {
+  cash: "Cash",
+  mpesa_till: "M-Pesa Till",
+  mpesa_paybill: "M-Pesa Paybill",
+  mpesa_send: "M-Pesa Send Money",
+  bank: "Bank",
+  cheque: "Cheque",
+  card: "Card",
+  other: "Other",
+};
+
 export function ReconciliationClient({
   initialBankAccounts,
   initialStatements,
+  initialPaymentChannels = [],
 }: {
   initialBankAccounts: BankAccount[];
   initialStatements: Statement[];
+  initialPaymentChannels?: PaymentChannel[];
 }) {
   const [tab, setTab] = useState<"import" | "workbench" | "history">("import");
   const [bankAccounts] = useState(initialBankAccounts);
   const [statements, setStatements] = useState(initialStatements);
+  const [paymentChannels] = useState(initialPaymentChannels);
 
-  // Import state
-  const [importAccountId, setImportAccountId] = useState(
-    initialBankAccounts.find((b) => b.is_default)?.id ?? initialBankAccounts[0]?.id ?? ""
-  );
+  // Non-bank channels (bank-type channels are shown via the bank_accounts list instead)
+  const nonBankChannels = paymentChannels.filter((c) => c.channel_type !== "bank");
+
+  // Import state — encoded as "bank:<id>" or "channel:<id>"
+  const defaultSource =
+    initialBankAccounts.find((b) => b.is_default)?.id
+      ? `bank:${initialBankAccounts.find((b) => b.is_default)!.id}`
+      : initialBankAccounts[0]
+        ? `bank:${initialBankAccounts[0].id}`
+        : nonBankChannels[0]
+          ? `channel:${nonBankChannels[0].id}`
+          : "";
+  const [importSourceKey, setImportSourceKey] = useState(defaultSource);
   const [importSource, setImportSource] = useState<"csv" | "mpesa">("csv");
   const [importFile, setImportFile] = useState<File | null>(null);
   const [importing, setImporting] = useState(false);
@@ -134,10 +176,11 @@ export function ReconciliationClient({
   };
 
   const handleImport = async () => {
-    if (!importAccountId || !importFile) {
-      setImportMessage({ type: "err", text: "Select a bank account and a CSV file." });
+    if (!importSourceKey || !importFile) {
+      setImportMessage({ type: "err", text: "Select a payment source and a CSV file." });
       return;
     }
+    const [kind, sourceId] = importSourceKey.split(":");
     setImporting(true);
     setImportMessage(null);
     try {
@@ -146,7 +189,8 @@ export function ReconciliationClient({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          bank_account_id: importAccountId,
+          bank_account_id: kind === "bank" ? sourceId : null,
+          payment_channel_id: kind === "channel" ? sourceId : null,
           source: importSource,
           filename: importFile.name,
           csv_text,
@@ -261,27 +305,49 @@ export function ReconciliationClient({
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {bankAccounts.length === 0 ? (
+              {bankAccounts.length === 0 && nonBankChannels.length === 0 ? (
                 <div className="text-center py-8">
                   <AlertCircle className="size-10 text-amber-500 mx-auto mb-3" />
                   <p className="text-sm text-slate-600">
-                    No bank accounts yet. Add one in <strong>Settings → Bank Accounts</strong> first.
+                    No payment sources yet. Add a bank account or M-Pesa till/paybill in{" "}
+                    <strong>Settings → Payment Methods</strong> first.
                   </p>
                 </div>
               ) : (
                 <>
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div className="space-y-2">
-                      <Label>Bank account</Label>
-                      <Select value={importAccountId} onValueChange={setImportAccountId}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
+                      <Label>Payment source</Label>
+                      <Select value={importSourceKey} onValueChange={setImportSourceKey}>
+                        <SelectTrigger><SelectValue placeholder="Select a source" /></SelectTrigger>
                         <SelectContent>
-                          {bankAccounts.map((b) => (
-                            <SelectItem key={b.id} value={b.id}>
-                              {b.bank_name} — {b.account_number}
-                              {b.is_default && " (default)"}
-                            </SelectItem>
-                          ))}
+                          {bankAccounts.length > 0 && (
+                            <>
+                              <div className="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                                Bank Accounts
+                              </div>
+                              {bankAccounts.map((b) => (
+                                <SelectItem key={`bank:${b.id}`} value={`bank:${b.id}`}>
+                                  {b.bank_name} — {b.account_number}
+                                  {b.is_default && " (default)"}
+                                </SelectItem>
+                              ))}
+                            </>
+                          )}
+                          {nonBankChannels.length > 0 && (
+                            <>
+                              <div className="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                                M-Pesa & Other Channels
+                              </div>
+                              {nonBankChannels.map((c) => (
+                                <SelectItem key={`channel:${c.id}`} value={`channel:${c.id}`}>
+                                  {c.name}
+                                  {c.mpesa_shortcode ? ` (${c.mpesa_shortcode})` : ""}
+                                  {" — "}{CHANNEL_TYPE_LABEL[c.channel_type]}
+                                </SelectItem>
+                              ))}
+                            </>
+                          )}
                         </SelectContent>
                       </Select>
                     </div>
@@ -373,9 +439,11 @@ export function ReconciliationClient({
                   <Calendar className="size-3" />
                   {workbench.statement?.period_start} → {workbench.statement?.period_end}
                 </Badge>
-                <Badge variant="outline">
-                  {workbench.statement?.bank_accounts?.bank_name} — {workbench.statement?.bank_accounts?.account_number}
-                </Badge>
+                {workbench.statement && (
+                  <Badge variant="outline">
+                    {sourceLabel(workbench.statement)}
+                  </Badge>
+                )}
                 <div className="flex-1" />
                 <Badge variant="outline" className="text-xs">
                   {workbench.availableReceipts.length} receipts, {workbench.availableExpenses.length} expenses available
@@ -482,7 +550,7 @@ export function ReconciliationClient({
                   <TableHeader>
                     <TableRow>
                       <TableHead className="whitespace-nowrap">Date</TableHead>
-                      <TableHead className="whitespace-nowrap">Bank Account</TableHead>
+                      <TableHead className="whitespace-nowrap">Payment Source</TableHead>
                       <TableHead className="whitespace-nowrap">Source</TableHead>
                       <TableHead className="whitespace-nowrap">Period</TableHead>
                       <TableHead className="whitespace-nowrap text-right">Lines</TableHead>
@@ -495,7 +563,7 @@ export function ReconciliationClient({
                       <TableRow key={s.id}>
                         <TableCell className="whitespace-nowrap text-xs">{s.statement_date}</TableCell>
                         <TableCell className="text-sm">
-                          {s.bank_accounts?.bank_name} — {s.bank_accounts?.account_number}
+                          {sourceLabel(s)}
                         </TableCell>
                         <TableCell>
                           <Badge variant="outline" className="capitalize gap-1">

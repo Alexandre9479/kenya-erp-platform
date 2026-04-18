@@ -38,7 +38,17 @@ export async function POST(req: Request) {
     amount: number;
     category?: string;
     expense_date: string;
-    payment_method?: "cash" | "mpesa" | "bank_transfer" | "cheque" | "card";
+    payment_method?:
+      | "cash"
+      | "mpesa"
+      | "mpesa_till"
+      | "mpesa_paybill"
+      | "mpesa_send"
+      | "bank_transfer"
+      | "cheque"
+      | "card"
+      | "other";
+    payment_channel_id?: string | null;
     notes?: string;
     reference?: string;
   };
@@ -55,7 +65,8 @@ export async function POST(req: Request) {
   });
   const expenseNumber = `EXP-${String(numData ?? 1).padStart(6, "0")}`;
 
-  const { data, error } = await supabase
+  const db = supabase as any;
+  const { data, error } = await db
     .from("expenses")
     .insert({
       tenant_id: tenantId,
@@ -66,6 +77,7 @@ export async function POST(req: Request) {
       description: body.description.trim(),
       expense_date: body.expense_date,
       payment_method: body.payment_method ?? "cash",
+      payment_channel_id: body.payment_channel_id ?? null,
       receipt_url: null,
       reference: body.reference ?? null,
       created_by: userId!,

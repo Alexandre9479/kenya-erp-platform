@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import {
   Loader2, Building2, FileText, Landmark, Globe,
   Camera, CheckCircle2, AlertTriangle, CreditCard,
-  Upload, Save, Settings2, Plus, Trash2, Star,
+  Upload, Save, Settings2, Plus, Trash2, Star, Wallet,
 } from "lucide-react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import { PaymentChannelsSection } from "@/components/settings/payment-channels-section";
 
 export type TenantRow = {
   id: string; name: string; slug: string; email: string;
@@ -472,6 +473,11 @@ export function SettingsForm({ tenant }: { tenant: TenantRow }) {
               </Button>
             </div>
           </div>
+        </SectionCard>
+
+        {/* ── Payment Methods ──────────────────────────────────────────── */}
+        <SectionCard icon={Wallet} title="Payment Methods" description="M-Pesa tills, paybills, personal lines, bank transfers, cash and card channels accepted across the platform." gradient="from-green-500 to-emerald-700">
+          <PaymentChannelsSection />
         </SectionCard>
 
         {/* ── Document Settings ────────────────────────────────────────── */}

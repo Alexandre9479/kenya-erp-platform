@@ -18,7 +18,7 @@ export async function GET(req: Request) {
     // Return statement + lines + candidate receipts/expenses for workbench
     const { data: statement } = await db
       .from("bank_statements")
-      .select("*, bank_accounts(bank_name, account_number)")
+      .select("*, bank_accounts(bank_name, account_number), payment_channels(name, channel_type, mpesa_shortcode)")
       .eq("id", statementId)
       .eq("tenant_id", tenantId)
       .single();

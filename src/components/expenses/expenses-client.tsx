@@ -50,11 +50,18 @@ const CATEGORIES = [
 
 const PAYMENT_METHODS = [
   { value: "cash",          label: "Cash" },
-  { value: "mpesa",         label: "M-Pesa" },
+  { value: "mpesa_till",    label: "M-Pesa Till (Buy Goods)" },
+  { value: "mpesa_paybill", label: "M-Pesa Paybill" },
+  { value: "mpesa_send",    label: "M-Pesa Send Money" },
   { value: "bank_transfer", label: "Bank Transfer" },
   { value: "cheque",        label: "Cheque" },
-  { value: "card",          label: "Card" },
+  { value: "card",          label: "Card / POS" },
+  { value: "other",         label: "Other" },
 ];
+
+const PAYMENT_METHOD_LABELS: Record<string, string> = Object.fromEntries(
+  PAYMENT_METHODS.map((m) => [m.value, m.label]).concat([["mpesa", "M-Pesa"]])
+);
 
 const KES = (v: number) =>
   new Intl.NumberFormat("en-KE", { minimumFractionDigits: 2 }).format(v);
@@ -75,13 +82,41 @@ type TenantInfo = {
   logo_url: string | null;
 };
 
+type PaymentChannel = {
+  id: string;
+  name: string;
+  channel_type:
+    | "cash"
+    | "mpesa_till"
+    | "mpesa_paybill"
+    | "mpesa_send"
+    | "bank"
+    | "cheque"
+    | "card"
+    | "other";
+  is_default: boolean;
+  is_active: boolean;
+};
+
+const METHOD_TO_CHANNEL_TYPE: Record<string, PaymentChannel["channel_type"] | null> = {
+  cash: "cash",
+  mpesa_till: "mpesa_till",
+  mpesa_paybill: "mpesa_paybill",
+  mpesa_send: "mpesa_send",
+  bank_transfer: "bank",
+  cheque: "cheque",
+  card: "card",
+  other: "other",
+};
+
 interface Props {
   initialExpenses: Expense[];
   total: number;
   tenant?: TenantInfo;
+  paymentChannels?: PaymentChannel[];
 }
 
-export default function ExpensesClient({ initialExpenses, total, tenant }: Props) {
+export default function ExpensesClient({ initialExpenses, total, tenant, paymentChannels = [] }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [expenses] = useState<Expense[]>(initialExpenses);
@@ -95,8 +130,13 @@ export default function ExpensesClient({ initialExpenses, total, tenant }: Props
     category: "Miscellaneous",
     expense_date: new Date().toISOString().split("T")[0],
     payment_method: "cash",
+    payment_channel_id: "",
     notes: "",
   });
+
+  const eligibleChannels = paymentChannels.filter(
+    (c) => c.is_active && c.channel_type === METHOD_TO_CHANNEL_TYPE[form.payment_method]
+  );
 
   const filtered = expenses.filter(
     (e) =>
@@ -127,6 +167,7 @@ export default function ExpensesClient({ initialExpenses, total, tenant }: Props
           category: form.category,
           expense_date: form.expense_date,
           payment_method: form.payment_method,
+          payment_channel_id: form.payment_channel_id || null,
           notes: form.notes || undefined,
         }),
       });
@@ -136,7 +177,7 @@ export default function ExpensesClient({ initialExpenses, total, tenant }: Props
       }
       toast.success("Expense submitted successfully");
       setSheetOpen(false);
-      setForm({ description: "", amount: "", category: "Miscellaneous", expense_date: new Date().toISOString().split("T")[0], payment_method: "cash", notes: "" });
+      setForm({ description: "", amount: "", category: "Miscellaneous", expense_date: new Date().toISOString().split("T")[0], payment_method: "cash", payment_channel_id: "", notes: "" });
       startTransition(() => router.refresh());
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to submit expense");
@@ -326,7 +367,7 @@ export default function ExpensesClient({ initialExpenses, total, tenant }: Props
                           <td className="px-4 py-3 text-slate-600">
                             {new Date(exp.expense_date).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" })}
                           </td>
-                          <td className="px-4 py-3 text-slate-500 capitalize">{exp.payment_method.replace("_", " ")}</td>
+                          <td className="px-4 py-3 text-slate-500">{PAYMENT_METHOD_LABELS[exp.payment_method] ?? exp.payment_method}</td>
                           <td className="px-4 py-3 text-right font-bold text-slate-900">KES {KES(exp.amount)}</td>
                           <td className="px-4 py-3">
                             <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold border ${st.className}`}>
@@ -426,13 +467,41 @@ export default function ExpensesClient({ initialExpenses, total, tenant }: Props
 
               <div className="space-y-1.5">
                 <Label>Payment Method</Label>
-                <Select value={form.payment_method} onValueChange={(v) => setForm((f) => ({ ...f, payment_method: v }))}>
+                <Select
+                  value={form.payment_method}
+                  onValueChange={(v) => setForm((f) => ({ ...f, payment_method: v, payment_channel_id: "" }))}
+                >
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {PAYMENT_METHODS.map((m) => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
+
+              {eligibleChannels.length > 0 && (
+                <div className="space-y-1.5">
+                  <Label>Payment Channel <span className="text-slate-400 font-normal">(optional)</span></Label>
+                  <Select
+                    value={form.payment_channel_id || "__none__"}
+                    onValueChange={(v) =>
+                      setForm((f) => ({ ...f, payment_channel_id: v === "__none__" ? "" : v }))
+                    }
+                  >
+                    <SelectTrigger><SelectValue placeholder="Select channel" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">— None —</SelectItem>
+                      {eligibleChannels.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.name}{c.is_default ? " (default)" : ""}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-slate-500">
+                    Pick the specific till, paybill, or account this was paid from.
+                  </p>
+                </div>
+              )}
 
               <div className="space-y-1.5">
                 <Label>Notes</Label>

@@ -12,6 +12,7 @@ export async function POST(req: Request) {
   const body = await req.json();
   const {
     bank_account_id,
+    payment_channel_id,
     source,
     filename,
     csv_text,
@@ -19,7 +20,8 @@ export async function POST(req: Request) {
     opening_balance,
     closing_balance,
   } = body as {
-    bank_account_id: string;
+    bank_account_id?: string | null;
+    payment_channel_id?: string | null;
     source: "csv" | "mpesa";
     filename?: string;
     csv_text: string;
@@ -28,8 +30,17 @@ export async function POST(req: Request) {
     closing_balance?: number;
   };
 
-  if (!bank_account_id || !csv_text) {
-    return NextResponse.json({ error: "bank_account_id and csv_text required" }, { status: 400 });
+  if ((!bank_account_id && !payment_channel_id) || !csv_text) {
+    return NextResponse.json(
+      { error: "Provide a payment source (bank account or payment channel) and csv_text" },
+      { status: 400 }
+    );
+  }
+  if (bank_account_id && payment_channel_id) {
+    return NextResponse.json(
+      { error: "Provide either bank_account_id or payment_channel_id, not both" },
+      { status: 400 }
+    );
   }
 
   const lines = source === "mpesa" ? parseMpesaCSV(csv_text) : parseGenericCSV(csv_text);
@@ -44,15 +55,35 @@ export async function POST(req: Request) {
   const supabase = await createServiceClient();
   const db = supabase as any;
 
-  // Verify bank account belongs to tenant
-  const { data: bankAcc } = await db
-    .from("bank_accounts")
-    .select("id")
-    .eq("id", bank_account_id)
-    .eq("tenant_id", tenantId)
-    .single();
-  if (!bankAcc) {
-    return NextResponse.json({ error: "Bank account not found" }, { status: 404 });
+  let resolvedBankAccountId: string | null = bank_account_id ?? null;
+  let resolvedChannelId: string | null = payment_channel_id ?? null;
+
+  if (bank_account_id) {
+    const { data: bankAcc } = await db
+      .from("bank_accounts")
+      .select("id")
+      .eq("id", bank_account_id)
+      .eq("tenant_id", tenantId)
+      .single();
+    if (!bankAcc) {
+      return NextResponse.json({ error: "Bank account not found" }, { status: 404 });
+    }
+  } else if (payment_channel_id) {
+    const { data: channel } = await db
+      .from("payment_channels")
+      .select("id, channel_type, bank_account_id")
+      .eq("id", payment_channel_id)
+      .eq("tenant_id", tenantId)
+      .single();
+    if (!channel) {
+      return NextResponse.json({ error: "Payment channel not found" }, { status: 404 });
+    }
+    // If the channel is a bank channel, store against the linked bank account for
+    // compatibility with existing match logic.
+    if (channel.channel_type === "bank" && channel.bank_account_id) {
+      resolvedBankAccountId = channel.bank_account_id;
+      resolvedChannelId = null;
+    }
   }
 
   const dates = lines.map((l) => l.line_date).sort();
@@ -64,7 +95,8 @@ export async function POST(req: Request) {
     .from("bank_statements")
     .insert({
       tenant_id: tenantId,
-      bank_account_id,
+      bank_account_id: resolvedBankAccountId,
+      payment_channel_id: resolvedChannelId,
       statement_date: statement_date ?? periodEnd,
       period_start: periodStart,
       period_end: periodEnd,
@@ -86,7 +118,8 @@ export async function POST(req: Request) {
   const linesToInsert = lines.map((l) => ({
     tenant_id: tenantId,
     statement_id: statement.id,
-    bank_account_id,
+    bank_account_id: resolvedBankAccountId,
+    payment_channel_id: resolvedChannelId,
     line_date: l.line_date,
     description: l.description,
     reference: l.reference,
