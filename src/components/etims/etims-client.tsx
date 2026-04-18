@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 import {
   FileCheck, Settings2, Send, CheckCircle2, XCircle, AlertCircle, RefreshCw,
   Copy, Shield,
@@ -112,8 +113,9 @@ export function EtimsClient({
         const r = await fetch("/api/etims/submissions");
         const j = await r.json();
         if (j.data) setSubmissions(j.data);
+        toast.success("Submitted to eTIMS");
       } else {
-        alert(json.error ?? "Submission failed");
+        toast.error(json.error ?? "Submission failed");
       }
     } finally { setSubmitting(null); }
   };
