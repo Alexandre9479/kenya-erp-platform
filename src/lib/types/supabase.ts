@@ -48,6 +48,7 @@ export interface Database {
           journal_prefix: string | null;
           bill_prefix: string | null;
           grn_prefix: string | null;
+          base_currency: string;
           terms_and_conditions: string | null;
           created_at: string;
           updated_at: string;

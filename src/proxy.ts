@@ -12,6 +12,8 @@ const ROUTE_ROLES: { prefix: string; roles: string[] }[] = [
   { prefix: "/admin", roles: ["super_admin"] },
   { prefix: "/users", roles: ["super_admin", "tenant_admin"] },
   { prefix: "/settings", roles: ["super_admin", "tenant_admin"] },
+  { prefix: "/audit-log", roles: ["super_admin", "tenant_admin"] },
+  { prefix: "/approvals", roles: ["super_admin", "tenant_admin", "accountant", "hr", "purchasing"] },
 
   // Finance suite — accountants, admins, viewers
   { prefix: "/accounting", roles: ["super_admin", "tenant_admin", "accountant", "viewer"] },
@@ -28,9 +30,14 @@ const ROUTE_ROLES: { prefix: string; roles: string[] }[] = [
   { prefix: "/inventory", roles: ["super_admin", "tenant_admin", "warehouse", "sales", "viewer"] },
   { prefix: "/warehouse", roles: ["super_admin", "tenant_admin", "warehouse", "viewer"] },
   { prefix: "/crm", roles: ["super_admin", "tenant_admin", "sales", "viewer"] },
+  { prefix: "/pos", roles: ["super_admin", "tenant_admin", "sales", "viewer"] },
+  { prefix: "/manufacturing", roles: ["super_admin", "tenant_admin", "warehouse", "viewer"] },
+  { prefix: "/projects", roles: ["super_admin", "tenant_admin", "sales", "hr", "accountant", "viewer"] },
+  { prefix: "/recurring-invoices", roles: ["super_admin", "tenant_admin", "accountant", "sales", "viewer"] },
 
   // People
   { prefix: "/hr", roles: ["super_admin", "tenant_admin", "hr", "viewer"] },
+  { prefix: "/attendance", roles: ["super_admin", "tenant_admin", "hr", "viewer"] },
 
   // Intelligence
   { prefix: "/reports", roles: ["super_admin", "tenant_admin", "accountant", "viewer"] },
