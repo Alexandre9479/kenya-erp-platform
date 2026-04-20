@@ -4,15 +4,21 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
   ClipboardCheck, CheckCircle2, XCircle, Clock, FileText, Inbox,
-  Search, ShieldCheck, AlertCircle,
+  Search, ShieldCheck, AlertCircle, Sparkles,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
+import {
+  PremiumHero,
+  HeroStatGrid,
+  HeroStat,
+  EmptyState,
+} from "@/components/ui/premium-hero";
+import { cn } from "@/lib/utils";
 
 type Request = {
   id: string;
@@ -31,11 +37,14 @@ type Request = {
   decision_note: string | null;
 };
 
-const STATUS_CONFIG: Record<string, { bg: string; icon: React.ElementType; label: string }> = {
-  pending:   { bg: "bg-amber-100 text-amber-800 border-amber-200",     icon: Clock,        label: "Pending"   },
-  approved:  { bg: "bg-emerald-100 text-emerald-800 border-emerald-200", icon: CheckCircle2, label: "Approved" },
-  rejected:  { bg: "bg-rose-100 text-rose-800 border-rose-200",        icon: XCircle,      label: "Rejected"  },
-  cancelled: { bg: "bg-slate-100 text-slate-700 border-slate-200",      icon: AlertCircle,  label: "Cancelled" },
+const STATUS_CONFIG: Record<
+  string,
+  { bg: string; icon: React.ElementType; label: string; dot: string }
+> = {
+  pending:   { bg: "bg-amber-50 text-amber-700 border-amber-200",       icon: Clock,        label: "Pending",   dot: "bg-amber-500" },
+  approved:  { bg: "bg-emerald-50 text-emerald-700 border-emerald-200", icon: CheckCircle2, label: "Approved",  dot: "bg-emerald-500 animate-pulse" },
+  rejected:  { bg: "bg-rose-50 text-rose-700 border-rose-200",          icon: XCircle,      label: "Rejected",  dot: "bg-rose-500" },
+  cancelled: { bg: "bg-slate-100 text-slate-600 border-slate-200",      icon: AlertCircle,  label: "Cancelled", dot: "bg-slate-400" },
 };
 
 const DOC_TYPE_LABELS: Record<string, string> = {
@@ -116,202 +125,192 @@ export function ApprovalsClient({
   }
 
   return (
-    <div className="-m-4 md:-m-6">
-      <div
-        className="relative overflow-hidden px-4 sm:px-6 md:px-10 pt-8 pb-14"
-        style={{ background: "linear-gradient(135deg, #422006 0%, #78350f 45%, #b45309 100%)" }}
+    <div className="space-y-4 sm:space-y-6">
+      <PremiumHero
+        gradient="amber"
+        icon={ShieldCheck}
+        eyebrow={
+          <>
+            <Sparkles className="size-3 sm:size-3.5" />
+            Approval Workflows
+          </>
+        }
+        title="Approvals"
+        description="Review expenses, purchase orders, journals, leave & timesheet requests — routed by amount or role."
       >
-        <div className="absolute inset-0 opacity-30 pointer-events-none">
-          <div className="absolute -top-24 -left-24 w-80 h-80 rounded-full bg-amber-500 blur-3xl" />
-          <div className="absolute -bottom-24 -right-16 w-96 h-96 rounded-full bg-orange-500 blur-3xl" />
-        </div>
-        <div className="relative mx-auto max-w-7xl">
-          <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1.5 text-xs font-medium text-amber-100 backdrop-blur">
-            <ShieldCheck className="h-3.5 w-3.5" />
-            <span>Approval Workflows</span>
-          </div>
-          <h1 className="mt-4 text-3xl md:text-4xl font-bold tracking-tight text-white">Approvals</h1>
-          <p className="mt-2 text-amber-100/80 text-sm md:text-base max-w-2xl">
-            Review expenses, purchase orders, journals, leave &amp; timesheet requests — route them by amount or role.
-          </p>
+        <HeroStatGrid>
+          <HeroStat icon={Inbox} label="In my inbox" value={String(counts.inbox)} sub="awaiting my decision" accent={counts.inbox > 0 ? "warning" : "default"} />
+          <HeroStat icon={Clock} label="All pending" value={String(counts.pending)} sub="across the team" />
+          <HeroStat icon={CheckCircle2} label="Approved" value={String(counts.approved)} sub="decision logged" accent="success" />
+          <HeroStat icon={XCircle} label="Rejected" value={String(counts.rejected)} sub="returned to sender" accent="danger" />
+        </HeroStatGrid>
+      </PremiumHero>
 
-          <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-3">
-            <StatTile label="In my inbox" value={counts.inbox} icon={Inbox} tone="amber" />
-            <StatTile label="All pending" value={counts.pending} icon={Clock} tone="yellow" />
-            <StatTile label="Approved" value={counts.approved} icon={CheckCircle2} tone="emerald" />
-            <StatTile label="Rejected" value={counts.rejected} icon={XCircle} tone="rose" />
+      <Card className="border-slate-200 shadow-sm">
+        <CardContent className="p-3 md:p-4 flex flex-col md:flex-row md:items-center gap-3">
+          <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)} className="w-full md:w-auto">
+            <div className="overflow-x-auto pb-0.5">
+              <TabsList className="h-10 bg-slate-100 w-max">
+                <TabsTrigger value="inbox" className="data-[state=active]:bg-white gap-1.5">
+                  <Inbox className="h-3.5 w-3.5" /> Inbox
+                  {counts.inbox > 0 && (
+                    <span className="ml-1 rounded-full bg-amber-500 text-white text-[10px] leading-none px-1.5 py-0.5 font-bold">
+                      {counts.inbox}
+                    </span>
+                  )}
+                </TabsTrigger>
+                <TabsTrigger value="pending" className="data-[state=active]:bg-white">
+                  Pending ({counts.pending})
+                </TabsTrigger>
+                <TabsTrigger value="all" className="data-[state=active]:bg-white">
+                  All ({counts.total})
+                </TabsTrigger>
+              </TabsList>
+            </div>
+          </Tabs>
+          <div className="relative flex-1 md:ml-auto md:max-w-sm">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <Input
+              placeholder="Search by reference, type, role…"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              className="pl-9 h-10 focus-visible:ring-amber-500"
+            />
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
-      <div className="-mt-10 px-4 sm:px-6 md:px-10 pb-12">
-        <div className="mx-auto max-w-7xl space-y-5">
-          <Card className="border-slate-200/80 shadow-lg shadow-slate-200/40">
-            <CardContent className="p-4 md:p-5 flex flex-col md:flex-row md:items-center gap-3">
-              <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)} className="w-full md:w-auto">
-                <TabsList className="h-10 bg-slate-100">
-                  <TabsTrigger value="inbox" className="data-[state=active]:bg-white gap-1.5">
-                    <Inbox className="h-3.5 w-3.5" /> My Inbox
-                    <span className="ml-1 rounded-full bg-amber-500 text-white text-[10px] leading-none px-1.5 py-0.5">{counts.inbox}</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="pending" className="data-[state=active]:bg-white">
-                    Pending ({counts.pending})
-                  </TabsTrigger>
-                  <TabsTrigger value="all" className="data-[state=active]:bg-white">
-                    All ({counts.total})
-                  </TabsTrigger>
-                </TabsList>
-              </Tabs>
-              <div className="relative flex-1 md:ml-auto md:max-w-sm">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                <Input
-                  placeholder="Search by reference, type, role…"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  className="pl-9 h-10"
-                />
-              </div>
+      <div className="space-y-3">
+        {filtered.length === 0 ? (
+          <Card className="border-dashed border-slate-300 bg-white/50">
+            <CardContent className="p-0">
+              <EmptyState
+                icon={ClipboardCheck}
+                title="Nothing to approve"
+                description={
+                  tab === "inbox"
+                    ? "You're all caught up. Requests routed to you will appear here."
+                    : "Requests will appear here when raised."
+                }
+              />
             </CardContent>
           </Card>
+        ) : (
+          filtered.map((r) => {
+            const cfg = STATUS_CONFIG[r.status];
+            const docLabel = DOC_TYPE_LABELS[r.doc_type] ?? r.doc_type;
+            const canDecideNow =
+              r.status === "pending" &&
+              (r.approver_user_id === currentUserId ||
+                r.approver_role === currentRole ||
+                ["super_admin", "tenant_admin"].includes(currentRole));
 
-          <div className="space-y-3">
-            {filtered.length === 0 ? (
-              <Card className="border-dashed border-slate-300 bg-white/50">
-                <CardContent className="p-16 text-center">
-                  <div className="mx-auto h-16 w-16 rounded-2xl bg-slate-100 flex items-center justify-center mb-4">
-                    <ClipboardCheck className="h-8 w-8 text-slate-400" />
-                  </div>
-                  <p className="text-base font-semibold text-slate-700">Nothing to approve</p>
-                  <p className="text-sm text-slate-500 mt-1">Requests will appear here when raised.</p>
-                </CardContent>
-              </Card>
-            ) : filtered.map((r) => {
-              const cfg = STATUS_CONFIG[r.status];
-              const Icon = cfg.icon;
-              const docLabel = DOC_TYPE_LABELS[r.doc_type] ?? r.doc_type;
-              const canDecideNow =
-                r.status === "pending" &&
-                (r.approver_user_id === currentUserId ||
-                  r.approver_role === currentRole ||
-                  ["super_admin", "tenant_admin"].includes(currentRole));
-
-              return (
-                <Card key={r.id} className="border-slate-200/80 shadow-sm hover:shadow-lg transition-shadow">
-                  <CardHeader className="flex flex-row items-start justify-between gap-4 pb-3">
-                    <div className="flex items-start gap-3">
-                      <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-linear-to-br from-amber-500 to-orange-600 shadow-md shadow-amber-500/20">
-                        <FileText className="h-5 w-5 text-white" />
-                      </div>
-                      <div className="space-y-1">
-                        <CardTitle className="text-base">
-                          {docLabel}
-                          {r.doc_reference && (
-                            <span className="ml-2 font-mono text-xs text-slate-400">· {r.doc_reference}</span>
-                          )}
-                        </CardTitle>
-                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
-                          {r.amount != null && (
-                            <span className="font-semibold text-slate-700">
-                              {KES(Number(r.amount), r.currency_code ?? "KES")}
-                            </span>
-                          )}
-                          <span>Requested {new Date(r.requested_at).toLocaleString()}</span>
-                          {r.approver_role && (
-                            <span className="inline-flex items-center gap-1">
-                              <ShieldCheck className="h-3 w-3" />
-                              <span className="capitalize">{r.approver_role.replace("_", " ")}</span>
-                            </span>
-                          )}
-                        </div>
-                      </div>
+            return (
+              <Card
+                key={r.id}
+                className="relative overflow-hidden border-slate-200 shadow-sm hover:shadow-md transition-shadow"
+              >
+                <div className="absolute top-0 left-0 right-0 h-1 bg-linear-to-r from-amber-500 via-orange-500 to-rose-500" />
+                <CardHeader className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 pb-3 pt-4">
+                  <div className="flex items-start gap-3 min-w-0 flex-1">
+                    <div className="flex size-10 sm:size-11 items-center justify-center rounded-xl bg-linear-to-br from-amber-500 to-orange-600 shadow-md shadow-amber-500/20 shrink-0">
+                      <FileText className="size-5 text-white" />
                     </div>
-                    <Badge className={`${cfg.bg} border capitalize gap-1 shrink-0`}>
-                      <Icon className="h-3 w-3" /> {cfg.label}
-                    </Badge>
-                  </CardHeader>
-
-                  {canDecideNow && (
-                    <CardContent className="pt-0 space-y-3">
-                      <Separator />
-                      <Textarea
-                        placeholder="Decision note (optional — visible to the requester)"
-                        value={note[r.id] ?? ""}
-                        onChange={(e) => setNote((n) => ({ ...n, [r.id]: e.target.value }))}
-                        rows={2}
-                        className="resize-none"
-                      />
-                      <div className="flex flex-wrap gap-2">
-                        <Button
-                          size="sm"
-                          onClick={() => decide(r.id, "approved")}
-                          disabled={busy === r.id}
-                          className="bg-emerald-600 hover:bg-emerald-700 shadow-md shadow-emerald-500/20"
-                        >
-                          <CheckCircle2 className="h-4 w-4 mr-1.5" /> Approve
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => decide(r.id, "rejected")}
-                          disabled={busy === r.id}
-                          className="border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100"
-                        >
-                          <XCircle className="h-4 w-4 mr-1.5" /> Reject
-                        </Button>
-                        {r.requested_by === currentUserId && (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => decide(r.id, "cancelled")}
-                            disabled={busy === r.id}
-                          >
-                            Cancel request
-                          </Button>
+                    <div className="space-y-1 min-w-0 flex-1">
+                      <CardTitle className="text-sm sm:text-base flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                        <span className="truncate">{docLabel}</span>
+                        {r.doc_reference && (
+                          <span className="font-mono text-[11px] text-slate-400 font-normal">· {r.doc_reference}</span>
                         )}
-                      </div>
-                    </CardContent>
-                  )}
-                  {r.status !== "pending" && r.decision_note && (
-                    <CardContent className="pt-0">
-                      <Separator className="mb-3" />
-                      <div className="rounded-lg bg-slate-50 border border-slate-200 px-3 py-2.5 text-sm text-slate-600 italic">
-                        &ldquo;{r.decision_note}&rdquo;
-                        {r.decided_at && (
-                          <span className="block not-italic text-xs text-slate-400 mt-1">
-                            Decided {new Date(r.decided_at).toLocaleString()}
+                      </CardTitle>
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] sm:text-xs text-slate-500">
+                        {r.amount != null && (
+                          <span className="font-bold text-slate-700 tabular-nums">
+                            {KES(Number(r.amount), r.currency_code ?? "KES")}
+                          </span>
+                        )}
+                        <span className="tabular-nums">
+                          {new Date(r.requested_at).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" })}
+                        </span>
+                        {r.approver_role && (
+                          <span className="inline-flex items-center gap-1">
+                            <ShieldCheck className="h-3 w-3" />
+                            <span className="capitalize">{r.approver_role.replace("_", " ")}</span>
                           </span>
                         )}
                       </div>
-                    </CardContent>
-                  )}
-                </Card>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
+                    </div>
+                  </div>
+                  <span
+                    className={cn(
+                      "inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px] font-semibold shrink-0 self-start",
+                      cfg.bg
+                    )}
+                  >
+                    <span className={cn("size-1.5 rounded-full", cfg.dot)} />
+                    {cfg.label}
+                  </span>
+                </CardHeader>
 
-const TONES = {
-  amber:   "from-amber-500 to-orange-600 shadow-amber-500/30",
-  yellow:  "from-yellow-500 to-amber-600 shadow-yellow-500/30",
-  emerald: "from-emerald-500 to-teal-600 shadow-emerald-500/30",
-  rose:    "from-rose-500 to-red-600 shadow-rose-500/30",
-} as const;
-
-function StatTile({
-  label, value, icon: Icon, tone,
-}: { label: string; value: number; icon: React.ElementType; tone: keyof typeof TONES }) {
-  return (
-    <div className="rounded-2xl border border-white/10 bg-white/10 backdrop-blur px-4 py-3 flex items-center gap-3">
-      <div className={`flex h-10 w-10 items-center justify-center rounded-xl bg-linear-to-br ${TONES[tone]} shadow-lg`}>
-        <Icon className="h-5 w-5 text-white" />
-      </div>
-      <div>
-        <div className="text-[11px] uppercase tracking-wider text-white/60 font-semibold">{label}</div>
-        <div className="text-xl font-bold text-white">{value}</div>
+                {canDecideNow && (
+                  <CardContent className="pt-0 space-y-3">
+                    <Separator />
+                    <Textarea
+                      placeholder="Decision note (optional — visible to the requester)"
+                      value={note[r.id] ?? ""}
+                      onChange={(e) => setNote((n) => ({ ...n, [r.id]: e.target.value }))}
+                      rows={2}
+                      className="resize-none focus-visible:ring-amber-500"
+                    />
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        size="sm"
+                        onClick={() => decide(r.id, "approved")}
+                        disabled={busy === r.id}
+                        className="bg-linear-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-md shadow-emerald-500/20 gap-1.5"
+                      >
+                        <CheckCircle2 className="size-3.5" /> Approve
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => decide(r.id, "rejected")}
+                        disabled={busy === r.id}
+                        className="border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 gap-1.5"
+                      >
+                        <XCircle className="size-3.5" /> Reject
+                      </Button>
+                      {r.requested_by === currentUserId && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => decide(r.id, "cancelled")}
+                          disabled={busy === r.id}
+                          className="text-slate-500 hover:text-slate-700"
+                        >
+                          Cancel request
+                        </Button>
+                      )}
+                    </div>
+                  </CardContent>
+                )}
+                {r.status !== "pending" && r.decision_note && (
+                  <CardContent className="pt-0">
+                    <Separator className="mb-3" />
+                    <div className="rounded-lg bg-slate-50 border border-slate-200 px-3 py-2.5 text-sm text-slate-600 italic">
+                      &ldquo;{r.decision_note}&rdquo;
+                      {r.decided_at && (
+                        <span className="block not-italic text-[11px] text-slate-400 mt-1 tabular-nums">
+                          Decided {new Date(r.decided_at).toLocaleString()}
+                        </span>
+                      )}
+                    </div>
+                  </CardContent>
+                )}
+              </Card>
+            );
+          })
+        )}
       </div>
     </div>
   );

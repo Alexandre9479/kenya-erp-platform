@@ -25,6 +25,8 @@ import {
   Repeat,
   Clock,
   ScrollText,
+  Upload,
+  Crown,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import type { UserRole } from "@/lib/types/supabase";
@@ -252,6 +254,28 @@ const APPS: AppCard[] = [
     category: "Admin",
     keywords: ["staff", "invite", "roles", "permissions", "access"],
     roles: ["super_admin", "tenant_admin"],
+  },
+  {
+    href: "/billing",
+    title: "Billing & Plans",
+    description: "Manage your subscription, upgrade plans, and view M-Pesa payment history.",
+    icon: Crown,
+    gradient: "from-amber-600 to-rose-700",
+    glow: "shadow-amber-500/30",
+    category: "Admin",
+    keywords: ["subscription", "plan", "upgrade", "mpesa", "payment", "invoice"],
+    roles: ["super_admin", "tenant_admin"],
+  },
+  {
+    href: "/import",
+    title: "Data Import",
+    description: "Bulk-load customers, products and opening balances from CSV files.",
+    icon: Upload,
+    gradient: "from-violet-600 to-fuchsia-700",
+    glow: "shadow-violet-500/30",
+    category: "Admin",
+    keywords: ["csv", "bulk", "import", "migrate", "upload", "opening balances"],
+    roles: ["super_admin", "tenant_admin", "accountant"],
   },
   {
     href: "/settings",

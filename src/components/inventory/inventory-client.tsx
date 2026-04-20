@@ -14,7 +14,16 @@ import {
   Trash2,
   AlertTriangle,
   Tag,
+  Sparkles,
+  Boxes,
+  Layers,
 } from "lucide-react";
+import {
+  PremiumHero,
+  HeroStatGrid,
+  HeroStat,
+  EmptyState,
+} from "@/components/ui/premium-hero";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -232,70 +241,58 @@ export function InventoryClient({
   const showingFrom = totalCount === 0 ? 0 : (currentPage - 1) * PAGE_LIMIT + 1;
   const showingTo = Math.min(currentPage * PAGE_LIMIT, totalCount);
 
+  const catalogueValue = products.reduce((s, p) => s + (p.total_stock * p.cost_price || 0), 0);
+
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4 sm:gap-6">
 
-      {/* ── Module Hero Strip ──────────────────────────────── */}
-      <div className="relative rounded-2xl overflow-hidden bg-linear-to-r from-cyan-500 via-teal-500 to-cyan-600 p-6 text-white shadow-lg">
-        <div className="absolute -top-8 -right-8 w-40 h-40 rounded-full bg-white/10" />
-        <div className="absolute -bottom-6 -right-20 w-56 h-56 rounded-full bg-white/5" />
-
-        <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-sm shadow-inner">
-              <Package className="size-7 text-white" />
-            </div>
-            <div>
-              <p className="text-cyan-100 text-sm font-medium tracking-wide uppercase">Inventory</p>
-              <h1 className="text-2xl font-bold tracking-tight">Product Catalogue</h1>
-              <p className="text-cyan-100 text-sm mt-0.5">Manage products, categories & stock levels</p>
-            </div>
-          </div>
+      <PremiumHero
+        gradient="cyan"
+        icon={Package}
+        eyebrow={
+          <>
+            <Sparkles className="size-3 sm:size-3.5" />
+            Inventory
+          </>
+        }
+        title="Product Catalogue"
+        description="Manage products, categories, pricing and stock health across your warehouses."
+        actions={
           <Button
             onClick={() => { setEditingProduct(undefined); setProductSheetOpen(true); }}
-            className="bg-white text-cyan-700 hover:bg-cyan-50 font-semibold shadow-md gap-2 shrink-0"
+            size="sm"
+            className="bg-white text-cyan-700 hover:bg-white/90 font-semibold shadow-md gap-1.5"
           >
-            <Plus className="size-4" />
+            <Plus className="size-3.5" />
             Add Product
           </Button>
-        </div>
+        }
+      >
+        <HeroStatGrid>
+          <HeroStat icon={Package} label="Total products" value={String(totalCount)} sub={`${products.length} in view`} />
+          <HeroStat icon={Power} label="Active" value={String(activeCount)} sub={`${Math.round((activeCount / Math.max(products.length, 1)) * 100)}% live`} accent="success" />
+          <HeroStat icon={AlertTriangle} label="Low stock" value={String(lowStockCount)} sub={lowStockCount > 0 ? "needs reorder" : "all healthy"} accent={lowStockCount > 0 ? "warning" : "default"} />
+          <HeroStat icon={Boxes} label="Catalogue value" value={catalogueValue >= 1000 ? `KES ${(catalogueValue / 1000).toFixed(0)}K` : `KES ${catalogueValue.toFixed(0)}`} sub="at cost" accent="info" />
+        </HeroStatGrid>
+      </PremiumHero>
 
-        {/* KPI row */}
-        <div className="relative mt-6 grid grid-cols-3 gap-3">
-          {[
-            { label: "Total Products", value: String(totalCount), Icon: Package },
-            { label: "Active", value: String(activeCount), Icon: Power },
-            { label: "Low Stock", value: String(lowStockCount), Icon: AlertTriangle },
-          ].map(({ label, value, Icon }) => (
-            <div key={label} className="bg-white/15 backdrop-blur-sm rounded-xl p-3 text-center">
-              <Icon className="size-4 text-cyan-100 mx-auto mb-1" />
-              <p className="text-lg font-bold">{value}</p>
-              <p className="text-cyan-100 text-xs">{label}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* ── Tabs ──────────────────────────────────────────── */}
       <Tabs defaultValue="products">
         <div className="overflow-x-auto pb-1">
           <TabsList className="w-max">
-            <TabsTrigger value="products">Products</TabsTrigger>
-            <TabsTrigger value="categories">Categories</TabsTrigger>
+            <TabsTrigger value="products"><Package className="mr-1.5 h-3.5 w-3.5" />Products ({totalCount})</TabsTrigger>
+            <TabsTrigger value="categories"><Layers className="mr-1.5 h-3.5 w-3.5" />Categories ({categories.length})</TabsTrigger>
           </TabsList>
         </div>
 
-        {/* ─── PRODUCTS TAB ─────────────────────────────────── */}
-        <TabsContent value="products" className="mt-4">
-          {/* Top bar */}
-          <div className="flex flex-col sm:flex-row gap-3 mb-4">
-            <div className="relative flex-1">
+        <TabsContent value="products" className="mt-4 space-y-4">
+          <div className="bg-white rounded-xl border border-slate-200 p-3 flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1 sm:max-w-sm">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
               <Input
                 placeholder="Search by name or SKU…"
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
-                className="pl-9"
+                className="pl-9 focus-visible:ring-cyan-500"
               />
             </div>
 
@@ -312,8 +309,126 @@ export function InventoryClient({
             </Select>
           </div>
 
-          {/* Table */}
-          <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+          {/* Mobile product cards */}
+          <div className="grid grid-cols-1 gap-2.5 md:hidden">
+            {isLoadingProducts ? (
+              Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="rounded-xl border border-slate-200 bg-white p-3">
+                  <Skeleton className="h-5 w-32 mb-2" />
+                  <Skeleton className="h-4 w-full mb-1" />
+                  <Skeleton className="h-4 w-2/3" />
+                </div>
+              ))
+            ) : products.length === 0 ? (
+              <div className="rounded-xl border border-slate-200 bg-white">
+                <EmptyState
+                  icon={Package}
+                  title="No products found"
+                  description="Try adjusting your search or filters, or add a product to get started."
+                  action={
+                    <Button
+                      size="sm"
+                      className="bg-linear-to-br from-cyan-500 to-teal-600 hover:from-cyan-600 hover:to-teal-700 text-white gap-1.5"
+                      onClick={() => { setEditingProduct(undefined); setProductSheetOpen(true); }}
+                    >
+                      <Plus className="size-3.5" /> Add Product
+                    </Button>
+                  }
+                />
+              </div>
+            ) : (
+              products.map((product) => {
+                const stockWarning = product.total_stock <= product.reorder_level;
+                const initial = (product.name?.trim() ?? "?").charAt(0).toUpperCase();
+                return (
+                  <div
+                    key={product.id}
+                    className="relative overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm"
+                  >
+                    <div className="absolute top-0 left-0 right-0 h-1 bg-linear-to-r from-cyan-500 via-teal-500 to-cyan-600" />
+                    <div className="p-3 pt-3.5">
+                      <div className="flex items-start gap-2.5">
+                        <div className="flex size-10 items-center justify-center rounded-xl bg-linear-to-br from-cyan-500 to-teal-600 text-white font-bold text-sm shrink-0 shadow-sm">
+                          {initial}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="font-semibold text-slate-900 truncate text-sm">{product.name}</p>
+                          <p className="text-[11px] text-slate-500 truncate font-mono">
+                            {product.sku}
+                            {product.category_name ? ` · ${product.category_name}` : ""}
+                          </p>
+                        </div>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="size-8 shrink-0">
+                              <MoreHorizontal className="size-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => { setEditingProduct(product); setProductSheetOpen(true); }}>
+                              <Pencil className="size-4 mr-2" /> Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              onClick={() => handleToggleActive(product)}
+                              className={product.is_active ? "text-amber-600" : "text-emerald-600"}
+                            >
+                              {product.is_active ? (
+                                <><PowerOff className="size-4 mr-2" /> Deactivate</>
+                              ) : (
+                                <><Power className="size-4 mr-2" /> Activate</>
+                              )}
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                      <div className="mt-2 flex items-center justify-between gap-2">
+                        <span
+                          className={cn(
+                            "inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px] font-semibold",
+                            product.is_active
+                              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                              : "bg-slate-50 text-slate-500 border-slate-200"
+                          )}
+                        >
+                          <span
+                            className={cn(
+                              "size-1.5 rounded-full",
+                              product.is_active ? "bg-emerald-500 animate-pulse" : "bg-slate-400"
+                            )}
+                          />
+                          {product.is_active ? "Active" : "Inactive"}
+                        </span>
+                        <span className="text-sm font-bold text-slate-900 tabular-nums">
+                          {formatKES(product.selling_price)}
+                        </span>
+                      </div>
+                      <div className="mt-2 pt-2 border-t border-slate-100 grid grid-cols-3 gap-2 text-[11px]">
+                        <div>
+                          <p className="uppercase tracking-wide font-semibold text-slate-400">Stock</p>
+                          <p className={cn("font-bold tabular-nums mt-0.5 flex items-center gap-1", stockWarning ? "text-amber-600" : "text-slate-700")}>
+                            {stockWarning && <AlertTriangle className="size-3" />}
+                            {product.total_stock.toLocaleString()} {product.unit}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="uppercase tracking-wide font-semibold text-slate-400">VAT</p>
+                          <p className="font-bold text-slate-700 tabular-nums mt-0.5">{product.vat_rate}%</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="uppercase tracking-wide font-semibold text-slate-400">Reorder</p>
+                          <p className="font-bold text-slate-700 tabular-nums mt-0.5">{product.reorder_level}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          {/* Desktop products table */}
+          <div className="hidden md:block rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
             <div className="h-1 w-full bg-linear-to-r from-cyan-500 via-teal-500 to-cyan-600" />
             <Table>
               <TableHeader>
@@ -340,23 +455,21 @@ export function InventoryClient({
                   ))
                 ) : products.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9}>
-                      <div className="flex flex-col items-center justify-center py-16 gap-4 text-slate-400">
-                        <div className="w-16 h-16 rounded-2xl bg-linear-to-br from-cyan-100 to-teal-100 flex items-center justify-center">
-                          <Package className="size-8 text-cyan-400" />
-                        </div>
-                        <div className="text-center">
-                          <p className="text-sm font-semibold text-slate-600">No products found</p>
-                          <p className="text-xs text-slate-400 mt-1">Try adjusting your search or filters</p>
-                        </div>
-                        <Button
-                          size="sm"
-                          className="bg-cyan-600 hover:bg-cyan-700 text-white gap-2"
-                          onClick={() => { setEditingProduct(undefined); setProductSheetOpen(true); }}
-                        >
-                          <Plus className="size-3.5" /> Add Product
-                        </Button>
-                      </div>
+                    <TableCell colSpan={9} className="p-0">
+                      <EmptyState
+                        icon={Package}
+                        title="No products found"
+                        description="Try adjusting your search or filters, or add a product to get started."
+                        action={
+                          <Button
+                            size="sm"
+                            className="bg-linear-to-br from-cyan-500 to-teal-600 hover:from-cyan-600 hover:to-teal-700 text-white gap-1.5"
+                            onClick={() => { setEditingProduct(undefined); setProductSheetOpen(true); }}
+                          >
+                            <Plus className="size-3.5" /> Add Product
+                          </Button>
+                        }
+                      />
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -377,20 +490,29 @@ export function InventoryClient({
                           "text-right font-semibold tabular-nums",
                           stockWarning ? "text-amber-600" : "text-slate-700"
                         )}>
-                          {product.total_stock.toLocaleString()}
-                          {stockWarning && <span className="ml-1 text-xs">⚠</span>}
+                          <span className="inline-flex items-center gap-1 justify-end">
+                            {stockWarning && <AlertTriangle className="size-3.5" />}
+                            {product.total_stock.toLocaleString()}
+                          </span>
                         </TableCell>
-                        <TableCell className="text-right text-slate-500 text-sm">{product.vat_rate}%</TableCell>
+                        <TableCell className="text-right text-slate-500 text-sm tabular-nums">{product.vat_rate}%</TableCell>
                         <TableCell>
-                          {product.is_active ? (
-                            <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 font-medium" variant="outline">
-                              Active
-                            </Badge>
-                          ) : (
-                            <Badge className="bg-slate-100 text-slate-500 border-slate-200 font-medium" variant="outline">
-                              Inactive
-                            </Badge>
-                          )}
+                          <span
+                            className={cn(
+                              "inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px] font-semibold",
+                              product.is_active
+                                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                : "bg-slate-50 text-slate-500 border-slate-200"
+                            )}
+                          >
+                            <span
+                              className={cn(
+                                "size-1.5 rounded-full",
+                                product.is_active ? "bg-emerald-500 animate-pulse" : "bg-slate-400"
+                              )}
+                            />
+                            {product.is_active ? "Active" : "Inactive"}
+                          </span>
                         </TableCell>
                         <TableCell>
                           <DropdownMenu>
@@ -450,18 +572,101 @@ export function InventoryClient({
           )}
         </TabsContent>
 
-        {/* ─── CATEGORIES TAB ───────────────────────────────── */}
-        <TabsContent value="categories" className="mt-4">
-          <div className="flex justify-end mb-4">
+        <TabsContent value="categories" className="mt-4 space-y-4">
+          <div className="flex justify-end">
             <Button
               onClick={() => { setEditingCategory(undefined); setCategorySheetOpen(true); }}
-              className="bg-cyan-600 hover:bg-cyan-700 text-white gap-2"
+              className="bg-linear-to-r from-cyan-500 to-teal-600 hover:from-cyan-600 hover:to-teal-700 text-white gap-2 shadow-sm"
             >
               <Plus className="size-4" /> Add Category
             </Button>
           </div>
 
-          <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+          {/* Mobile category cards */}
+          <div className="grid grid-cols-1 gap-2.5 md:hidden">
+            {isLoadingCategories ? (
+              Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="rounded-xl border border-slate-200 bg-white p-3">
+                  <Skeleton className="h-5 w-32 mb-2" />
+                  <Skeleton className="h-4 w-full" />
+                </div>
+              ))
+            ) : categories.length === 0 ? (
+              <div className="rounded-xl border border-slate-200 bg-white">
+                <EmptyState
+                  icon={Tag}
+                  title="No categories yet"
+                  description="Create a category to organise your products."
+                  action={
+                    <Button
+                      size="sm"
+                      className="bg-linear-to-br from-cyan-500 to-teal-600 hover:from-cyan-600 hover:to-teal-700 text-white gap-1.5"
+                      onClick={() => { setEditingCategory(undefined); setCategorySheetOpen(true); }}
+                    >
+                      <Plus className="size-3.5" /> Add category
+                    </Button>
+                  }
+                />
+              </div>
+            ) : (
+              categories.map((cat) => (
+                <div
+                  key={cat.id}
+                  className="relative overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm p-3 pt-3.5"
+                >
+                  <div className="absolute top-0 left-0 right-0 h-1 bg-linear-to-r from-cyan-500 via-teal-500 to-cyan-600" />
+                  <div className="flex items-start gap-2.5">
+                    <div className="flex size-9 items-center justify-center rounded-lg bg-linear-to-br from-cyan-500 to-teal-600 text-white shrink-0 shadow-sm">
+                      <Tag className="size-4" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold text-slate-900 truncate">{cat.name}</p>
+                      <p className="text-xs text-slate-500 line-clamp-2">
+                        {cat.description ?? "No description"}
+                      </p>
+                    </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="size-8 shrink-0">
+                          <MoreHorizontal className="size-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => { setEditingCategory(cat); setCategorySheetOpen(true); }}>
+                          <Pencil className="size-4 mr-2" /> Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <DropdownMenuItem className="text-red-600" onSelect={(e) => e.preventDefault()}>
+                              <Trash2 className="size-4 mr-2" /> Delete
+                            </DropdownMenuItem>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete category?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This will permanently delete <strong>{cat.name}</strong>. This action cannot be undone.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction className="bg-red-600 hover:bg-red-700" onClick={() => handleDeleteCategory(cat)}>
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* Desktop categories table */}
+          <div className="hidden md:block rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
             <div className="h-1 w-full bg-linear-to-r from-cyan-500 via-teal-500 to-cyan-600" />
             <Table>
               <TableHeader>
@@ -482,16 +687,12 @@ export function InventoryClient({
                   ))
                 ) : categories.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={3}>
-                      <div className="flex flex-col items-center justify-center py-16 gap-4 text-slate-400">
-                        <div className="w-16 h-16 rounded-2xl bg-linear-to-br from-cyan-100 to-teal-100 flex items-center justify-center">
-                          <Tag className="size-8 text-cyan-400" />
-                        </div>
-                        <div className="text-center">
-                          <p className="text-sm font-semibold text-slate-600">No categories yet</p>
-                          <p className="text-xs text-slate-400 mt-1">Create a category to organise your products</p>
-                        </div>
-                      </div>
+                    <TableCell colSpan={3} className="p-0">
+                      <EmptyState
+                        icon={Tag}
+                        title="No categories yet"
+                        description="Create a category to organise your products."
+                      />
                     </TableCell>
                   </TableRow>
                 ) : (

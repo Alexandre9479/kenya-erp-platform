@@ -4,18 +4,23 @@ import { useState } from "react";
 import { toast } from "sonner";
 import {
   FileCheck, Settings2, Send, CheckCircle2, XCircle, AlertCircle, RefreshCw,
-  Copy, Shield,
+  Shield, Sparkles, Clock, Activity,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
+import {
+  PremiumHero,
+  HeroStatGrid,
+  HeroStat,
+  EmptyState,
+} from "@/components/ui/premium-hero";
 
 type Config = {
   id: string;
@@ -126,34 +131,58 @@ export function EtimsClient({
     if (json.data) setSubmissions(json.data);
   };
 
+  const acceptedCount = submissions.filter((s) => s.status === "accepted").length;
+  const failedCount = submissions.filter((s) => s.status === "failed" || s.status === "rejected").length;
+  const pendingCount = submissions.filter((s) => s.status === "pending" || s.status === "submitted").length;
+
   return (
-    <div className="space-y-6">
-      <div className="relative rounded-2xl overflow-hidden bg-linear-to-r from-green-700 via-emerald-700 to-teal-800 p-4 sm:p-6 text-white shadow-lg">
-        <div className="absolute -top-8 -right-8 w-40 h-40 rounded-full bg-white/10" />
-        <div className="absolute -bottom-6 -right-20 w-56 h-56 rounded-full bg-white/5" />
-        <div className="relative flex items-center gap-3 sm:gap-4">
-          <div className="flex items-center justify-center w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-white/20 backdrop-blur-sm shadow-inner shrink-0">
-            <FileCheck className="size-5 sm:size-7 text-white" />
-          </div>
-          <div>
-            <p className="text-emerald-100 text-xs sm:text-sm font-medium tracking-wide uppercase">Tax Compliance</p>
-            <h1 className="text-lg sm:text-2xl font-bold tracking-tight">KRA eTIMS</h1>
-            <p className="text-emerald-100 text-sm mt-0.5 hidden sm:block">
-              Electronic tax invoice submission — {config?.is_active ? (
-                <span className="inline-flex items-center gap-1 bg-emerald-500/30 rounded px-1.5 py-0.5 text-xs">Active</span>
-              ) : <span className="text-amber-200">Not configured</span>}
-            </p>
-          </div>
-        </div>
-      </div>
+    <div className="space-y-4 sm:space-y-6">
+      <PremiumHero
+        gradient="emerald"
+        icon={FileCheck}
+        eyebrow={
+          <>
+            <Sparkles className="size-3 sm:size-3.5" />
+            Tax Compliance · KRA eTIMS
+          </>
+        }
+        title="KRA eTIMS"
+        description={
+          config?.is_active
+            ? `Electronic tax invoice submission active (${config?.environment}). Device: ${config?.device_type}.`
+            : "Electronic tax invoice submission — not yet configured."
+        }
+        actions={
+          <span
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold backdrop-blur-sm",
+              config?.is_active
+                ? "bg-emerald-400/25 text-white border-emerald-200/40"
+                : "bg-amber-400/25 text-white border-amber-200/40"
+            )}
+          >
+            <span className={cn("size-1.5 rounded-full", config?.is_active ? "bg-emerald-300 animate-pulse" : "bg-amber-300")} />
+            {config?.is_active ? "Live" : "Setup required"}
+          </span>
+        }
+      >
+        <HeroStatGrid>
+          <HeroStat icon={CheckCircle2} label="Accepted" value={String(acceptedCount)} sub="KRA approved" accent="success" />
+          <HeroStat icon={Clock} label="Pending" value={String(pendingCount)} sub="in-flight" accent={pendingCount > 0 ? "warning" : "default"} />
+          <HeroStat icon={XCircle} label="Failed" value={String(failedCount)} sub="needs retry" accent={failedCount > 0 ? "danger" : "default"} />
+          <HeroStat icon={Activity} label="Total" value={String(submissions.length)} sub="all submissions" accent="info" />
+        </HeroStatGrid>
+      </PremiumHero>
 
       {!config?.is_active && (
-        <Card className="border-amber-300 bg-amber-50">
+        <Card className="border-amber-300 bg-linear-to-br from-amber-50 to-orange-50 shadow-sm">
           <CardContent className="p-4 flex gap-3 items-start">
-            <AlertCircle className="size-5 text-amber-700 shrink-0 mt-0.5" />
+            <div className="flex size-9 items-center justify-center rounded-xl bg-linear-to-br from-amber-500 to-orange-600 shadow-md shrink-0">
+              <AlertCircle className="size-4 text-white" />
+            </div>
             <div className="text-sm text-amber-900">
-              <strong>eTIMS is mandatory</strong> for VAT-registered businesses in Kenya since 2024. Configure your device (OSCU/VSCU) below to start submitting invoices.
-              You'll need: KRA PIN, device serial, branch ID, and eTIMS endpoint URL from your KRA onboarding.
+              <strong className="text-amber-950">eTIMS is mandatory</strong> for VAT-registered businesses in Kenya since 2024. Configure your device (OSCU/VSCU) below to start submitting invoices.
+              You&apos;ll need: KRA PIN, device serial, branch ID, and eTIMS endpoint URL from your KRA onboarding.
             </div>
           </CardContent>
         </Card>
@@ -170,8 +199,16 @@ export function EtimsClient({
 
         {/* CONFIG */}
         <TabsContent value="config" className="space-y-4">
-          <Card>
-            <CardHeader><CardTitle className="text-base flex items-center gap-2"><Shield className="size-4" />Device Credentials</CardTitle></CardHeader>
+          <Card className="relative overflow-hidden border-slate-200 shadow-sm">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-linear-to-r from-emerald-500 via-teal-500 to-cyan-500" />
+            <CardHeader className="pt-4">
+              <CardTitle className="text-base flex items-center gap-2">
+                <div className="flex size-8 items-center justify-center rounded-lg bg-linear-to-br from-emerald-500 to-teal-600 shadow-sm">
+                  <Shield className="size-4 text-white" />
+                </div>
+                Device Credentials
+              </CardTitle>
+            </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-1">
@@ -234,7 +271,11 @@ export function EtimsClient({
                   <span>{configMsg.text}</span>
                 </div>
               )}
-              <Button onClick={saveConfig} disabled={saving}>
+              <Button
+                onClick={saveConfig}
+                disabled={saving}
+                className="bg-linear-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-md gap-1.5"
+              >
                 {saving ? "Saving…" : "Save Configuration"}
               </Button>
             </CardContent>
@@ -243,56 +284,75 @@ export function EtimsClient({
 
         {/* SUBMIT */}
         <TabsContent value="submit" className="space-y-4">
-          <Card>
-            <CardHeader><CardTitle className="text-base">Recent Invoices</CardTitle></CardHeader>
+          <Card className="relative overflow-hidden border-slate-200 shadow-sm">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-linear-to-r from-emerald-500 via-teal-500 to-cyan-500" />
+            <CardHeader className="pt-4">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Send className="size-4 text-emerald-600" />
+                Recent Invoices
+              </CardTitle>
+            </CardHeader>
             <CardContent className="p-0 overflow-x-auto">
               {!config?.is_active ? (
-                <div className="text-center py-10 px-4">
-                  <AlertCircle className="size-10 text-amber-500 mx-auto mb-2" />
-                  <p className="text-sm text-slate-600">Configure eTIMS first.</p>
-                </div>
+                <EmptyState
+                  icon={AlertCircle}
+                  title="Configure eTIMS first"
+                  description="Enable submissions in the Configuration tab before you can send invoices to KRA."
+                />
               ) : recentInvoices.length === 0 ? (
-                <div className="text-center py-10 px-4">
-                  <FileCheck className="size-10 text-slate-300 mx-auto mb-2" />
-                  <p className="text-sm text-slate-500">No finalized invoices to submit.</p>
-                </div>
+                <EmptyState
+                  icon={FileCheck}
+                  title="No finalized invoices"
+                  description="Finalize invoices from Sales to queue them up for eTIMS submission."
+                />
               ) : (
                 <Table>
                   <TableHeader>
-                    <TableRow>
-                      <TableHead className="whitespace-nowrap">Invoice</TableHead>
-                      <TableHead className="whitespace-nowrap">Date</TableHead>
-                      <TableHead className="whitespace-nowrap">Customer</TableHead>
-                      <TableHead className="whitespace-nowrap">KRA PIN</TableHead>
-                      <TableHead className="whitespace-nowrap text-right">Amount</TableHead>
-                      <TableHead className="whitespace-nowrap text-right">Actions</TableHead>
+                    <TableRow className="bg-slate-50 border-y border-slate-200">
+                      <TableHead className="whitespace-nowrap text-xs font-semibold uppercase tracking-wider text-slate-500">Invoice</TableHead>
+                      <TableHead className="whitespace-nowrap text-xs font-semibold uppercase tracking-wider text-slate-500">Date</TableHead>
+                      <TableHead className="whitespace-nowrap text-xs font-semibold uppercase tracking-wider text-slate-500">Customer</TableHead>
+                      <TableHead className="whitespace-nowrap text-xs font-semibold uppercase tracking-wider text-slate-500">KRA PIN</TableHead>
+                      <TableHead className="whitespace-nowrap text-xs font-semibold uppercase tracking-wider text-slate-500 text-right">Amount</TableHead>
+                      <TableHead className="whitespace-nowrap text-xs font-semibold uppercase tracking-wider text-slate-500 text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {recentInvoices.map((inv) => {
                       const sub = submissions.find((s) => s.document_number === inv.invoice_number);
                       return (
-                        <TableRow key={inv.id}>
-                          <TableCell className="font-mono text-xs whitespace-nowrap">{inv.invoice_number}</TableCell>
-                          <TableCell className="text-xs whitespace-nowrap">{inv.issue_date}</TableCell>
-                          <TableCell className="text-sm">{inv.customers?.name ?? "—"}</TableCell>
-                          <TableCell className="font-mono text-xs">{inv.customers?.kra_pin ?? "—"}</TableCell>
-                          <TableCell className="text-right whitespace-nowrap">
+                        <TableRow key={inv.id} className="hover:bg-emerald-50/30 transition-colors border-b border-slate-100">
+                          <TableCell className="font-mono text-xs whitespace-nowrap text-emerald-700 font-medium">{inv.invoice_number}</TableCell>
+                          <TableCell className="text-xs whitespace-nowrap text-slate-500 tabular-nums">{inv.issue_date}</TableCell>
+                          <TableCell className="text-sm text-slate-700">{inv.customers?.name ?? "—"}</TableCell>
+                          <TableCell className="font-mono text-xs text-slate-500 tabular-nums">{inv.customers?.kra_pin ?? "—"}</TableCell>
+                          <TableCell className="text-right whitespace-nowrap font-semibold text-slate-900 tabular-nums">
                             KES {Number(inv.total_amount).toLocaleString("en-KE", { minimumFractionDigits: 2 })}
                           </TableCell>
                           <TableCell className="text-right whitespace-nowrap">
                             {sub?.status === "accepted" ? (
-                              <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 gap-1">
-                                <CheckCircle2 className="size-3" />Submitted
-                              </Badge>
+                              <span className="inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px] font-semibold bg-emerald-50 text-emerald-700 border-emerald-200">
+                                <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                Submitted
+                              </span>
                             ) : sub?.status === "failed" ? (
-                              <Button size="sm" variant="outline" onClick={() => submitInvoice(inv.id)}
-                                disabled={submitting === inv.id}>
-                                <RefreshCw className="size-3.5 mr-1" />Retry
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => submitInvoice(inv.id)}
+                                disabled={submitting === inv.id}
+                                className="border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 gap-1"
+                              >
+                                <RefreshCw className="size-3.5" />Retry
                               </Button>
                             ) : (
-                              <Button size="sm" onClick={() => submitInvoice(inv.id)} disabled={submitting === inv.id}>
-                                <Send className="size-3.5 mr-1" />{submitting === inv.id ? "Submitting…" : "Submit"}
+                              <Button
+                                size="sm"
+                                onClick={() => submitInvoice(inv.id)}
+                                disabled={submitting === inv.id}
+                                className="bg-linear-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white gap-1 shadow-sm"
+                              >
+                                <Send className="size-3.5" />{submitting === inv.id ? "Submitting…" : "Submit"}
                               </Button>
                             )}
                           </TableCell>
@@ -309,54 +369,75 @@ export function EtimsClient({
         {/* SUBMISSIONS */}
         <TabsContent value="submissions" className="space-y-4">
           <div className="flex justify-end">
-            <Button size="sm" variant="outline" onClick={reloadSubmissions}>
-              <RefreshCw className="size-3.5 mr-1" />Refresh
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={reloadSubmissions}
+              className="gap-1.5 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-300"
+            >
+              <RefreshCw className="size-3.5" />Refresh
             </Button>
           </div>
-          <Card>
-            <CardContent className="p-0 overflow-x-auto">
+          <Card className="relative overflow-hidden border-slate-200 shadow-sm">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-linear-to-r from-emerald-500 via-teal-500 to-cyan-500" />
+            <CardContent className="p-0 overflow-x-auto pt-1">
               {submissions.length === 0 ? (
-                <div className="text-center py-10 px-4">
-                  <FileCheck className="size-10 text-slate-300 mx-auto mb-2" />
-                  <p className="text-sm text-slate-500">No submissions yet.</p>
-                </div>
+                <EmptyState
+                  icon={FileCheck}
+                  title="No submissions yet"
+                  description="Submit your first invoice from the Submit Invoice tab."
+                />
               ) : (
                 <Table>
                   <TableHeader>
-                    <TableRow>
-                      <TableHead className="whitespace-nowrap">Document</TableHead>
-                      <TableHead className="whitespace-nowrap">Type</TableHead>
-                      <TableHead className="whitespace-nowrap">Status</TableHead>
-                      <TableHead className="whitespace-nowrap">Attempts</TableHead>
-                      <TableHead className="whitespace-nowrap">KRA Invoice No.</TableHead>
-                      <TableHead className="whitespace-nowrap">Error</TableHead>
-                      <TableHead className="whitespace-nowrap">Submitted</TableHead>
+                    <TableRow className="bg-slate-50 border-y border-slate-200">
+                      <TableHead className="whitespace-nowrap text-xs font-semibold uppercase tracking-wider text-slate-500">Document</TableHead>
+                      <TableHead className="whitespace-nowrap text-xs font-semibold uppercase tracking-wider text-slate-500">Type</TableHead>
+                      <TableHead className="whitespace-nowrap text-xs font-semibold uppercase tracking-wider text-slate-500">Status</TableHead>
+                      <TableHead className="whitespace-nowrap text-xs font-semibold uppercase tracking-wider text-slate-500 text-center">Attempts</TableHead>
+                      <TableHead className="whitespace-nowrap text-xs font-semibold uppercase tracking-wider text-slate-500">KRA Inv #</TableHead>
+                      <TableHead className="whitespace-nowrap text-xs font-semibold uppercase tracking-wider text-slate-500">Error</TableHead>
+                      <TableHead className="whitespace-nowrap text-xs font-semibold uppercase tracking-wider text-slate-500">Submitted</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {submissions.map((s) => (
-                      <TableRow key={s.id}>
-                        <TableCell className="font-mono text-xs whitespace-nowrap">{s.document_number}</TableCell>
-                        <TableCell className="text-xs capitalize">{s.document_type.replace("_", " ")}</TableCell>
-                        <TableCell>
-                          {s.status === "accepted" && <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 gap-1"><CheckCircle2 className="size-3" />Accepted</Badge>}
-                          {s.status === "failed" && <Badge className="bg-red-100 text-red-800 border-red-200 gap-1"><XCircle className="size-3" />Failed</Badge>}
-                          {s.status === "pending" && <Badge variant="outline">Pending</Badge>}
-                          {s.status === "rejected" && <Badge className="bg-red-100 text-red-800 border-red-200">Rejected</Badge>}
-                        </TableCell>
-                        <TableCell className="text-xs text-center">{s.attempt_count}</TableCell>
-                        <TableCell className="font-mono text-xs">
-                          {s.kra_invoice_no ?? "—"}
-                        </TableCell>
-                        <TableCell className="text-xs text-red-700 max-w-xs truncate" title={s.error_message ?? ""}>
-                          {s.error_code && <span className="font-mono">{s.error_code}: </span>}
-                          {s.error_message ?? "—"}
-                        </TableCell>
-                        <TableCell className="text-xs whitespace-nowrap">
-                          {s.submitted_at ? new Date(s.submitted_at).toLocaleString("en-KE") : "—"}
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                    {submissions.map((s) => {
+                      const cfg =
+                        s.status === "accepted"
+                          ? { className: "bg-emerald-50 text-emerald-700 border-emerald-200", dot: "bg-emerald-500 animate-pulse", label: "Accepted" }
+                          : s.status === "failed"
+                            ? { className: "bg-rose-50 text-rose-700 border-rose-200", dot: "bg-rose-500", label: "Failed" }
+                            : s.status === "rejected"
+                              ? { className: "bg-rose-50 text-rose-700 border-rose-200", dot: "bg-rose-500", label: "Rejected" }
+                              : s.status === "pending"
+                                ? { className: "bg-amber-50 text-amber-700 border-amber-200", dot: "bg-amber-500", label: "Pending" }
+                                : s.status === "submitted"
+                                  ? { className: "bg-sky-50 text-sky-700 border-sky-200", dot: "bg-sky-500", label: "Submitted" }
+                                  : { className: "bg-slate-100 text-slate-600 border-slate-200", dot: "bg-slate-400", label: s.status };
+                      return (
+                        <TableRow key={s.id} className="hover:bg-emerald-50/30 transition-colors border-b border-slate-100">
+                          <TableCell className="font-mono text-xs whitespace-nowrap text-slate-700">{s.document_number}</TableCell>
+                          <TableCell className="text-xs capitalize text-slate-500">{s.document_type.replace("_", " ")}</TableCell>
+                          <TableCell>
+                            <span className={cn("inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px] font-semibold", cfg.className)}>
+                              <span className={cn("size-1.5 rounded-full", cfg.dot)} />
+                              {cfg.label}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-xs text-center text-slate-600 tabular-nums">{s.attempt_count}</TableCell>
+                          <TableCell className="font-mono text-xs text-slate-600">
+                            {s.kra_invoice_no ?? "—"}
+                          </TableCell>
+                          <TableCell className="text-xs text-rose-700 max-w-xs truncate" title={s.error_message ?? ""}>
+                            {s.error_code && <span className="font-mono">{s.error_code}: </span>}
+                            {s.error_message ?? "—"}
+                          </TableCell>
+                          <TableCell className="text-xs whitespace-nowrap text-slate-500 tabular-nums">
+                            {s.submitted_at ? new Date(s.submitted_at).toLocaleString("en-KE") : "—"}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               )}

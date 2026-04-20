@@ -44,6 +44,8 @@ const routeLabels: Record<string, string> = {
   "/reports": "Reports",
   "/settings": "Settings",
   "/users": "User Management",
+  "/import": "Data Import",
+  "/billing": "Billing & Plans",
   "/admin": "Super Admin",
 };
 

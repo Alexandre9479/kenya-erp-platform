@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Search, Package, AlertTriangle, Warehouse, TrendingDown, ArrowUpDown, ClipboardCheck } from "lucide-react";
+import { Search, Package, AlertTriangle, Warehouse, TrendingDown, ArrowUpDown, ClipboardCheck, Boxes, Sparkles, Building2, CalendarDays } from "lucide-react";
 import { toast } from "sonner";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -15,6 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
+import { PremiumHero, HeroStatGrid, HeroStat, EmptyState } from "@/components/ui/premium-hero";
 
 type Tab = "stock" | "movements" | "grns";
 
@@ -80,6 +81,23 @@ interface Props {
   initialStock: StockRow[];
   totalCount: number;
   initialWarehouses: Warehouse[];
+}
+
+const AVATAR_PALETTE = [
+  "from-violet-500 to-purple-600",
+  "from-indigo-500 to-blue-600",
+  "from-emerald-500 to-teal-600",
+  "from-amber-500 to-orange-600",
+  "from-rose-500 to-pink-600",
+  "from-cyan-500 to-sky-600",
+  "from-fuchsia-500 to-pink-600",
+  "from-lime-500 to-emerald-600",
+];
+
+function productGradient(name: string) {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) >>> 0;
+  return AVATAR_PALETTE[hash % AVATAR_PALETTE.length];
 }
 
 export function WarehouseClient({ initialStock, totalCount, initialWarehouses }: Props) {
@@ -236,129 +254,84 @@ export function WarehouseClient({ initialStock, totalCount, initialWarehouses }:
   const dateStr = (iso: string) => new Date(iso).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" });
   const dateTimeStr = (iso: string) => new Date(iso).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
 
-  const movementTypeLabel: Record<string, { label: string; color: string }> = {
-    stock_in: { label: "Stock In", color: "bg-emerald-100 text-emerald-700" },
-    stock_out: { label: "Stock Out", color: "bg-red-100 text-red-700" },
-    opening: { label: "Opening", color: "bg-blue-100 text-blue-700" },
-    adjustment: { label: "Adjustment", color: "bg-amber-100 text-amber-700" },
-    purchase: { label: "Purchase", color: "bg-emerald-100 text-emerald-700" },
-    sale: { label: "Sale", color: "bg-violet-100 text-violet-700" },
-    transfer_in: { label: "Transfer In", color: "bg-cyan-100 text-cyan-700" },
-    transfer_out: { label: "Transfer Out", color: "bg-orange-100 text-orange-700" },
-    write_off: { label: "Write Off", color: "bg-red-100 text-red-700" },
-    return: { label: "Return", color: "bg-teal-100 text-teal-700" },
+  const movementTypeLabel: Record<string, { label: string; color: string; dot: string }> = {
+    stock_in:     { label: "Stock In",     color: "border-emerald-200 bg-emerald-50 text-emerald-700", dot: "bg-emerald-500" },
+    stock_out:    { label: "Stock Out",    color: "border-rose-200 bg-rose-50 text-rose-700",           dot: "bg-rose-500" },
+    opening:      { label: "Opening",      color: "border-blue-200 bg-blue-50 text-blue-700",           dot: "bg-blue-500" },
+    adjustment:   { label: "Adjustment",   color: "border-amber-200 bg-amber-50 text-amber-700",        dot: "bg-amber-500" },
+    purchase:     { label: "Purchase",     color: "border-emerald-200 bg-emerald-50 text-emerald-700",  dot: "bg-emerald-500" },
+    sale:         { label: "Sale",         color: "border-violet-200 bg-violet-50 text-violet-700",     dot: "bg-violet-500" },
+    transfer_in:  { label: "Transfer In",  color: "border-cyan-200 bg-cyan-50 text-cyan-700",           dot: "bg-cyan-500" },
+    transfer_out: { label: "Transfer Out", color: "border-orange-200 bg-orange-50 text-orange-700",     dot: "bg-orange-500" },
+    write_off:    { label: "Write Off",    color: "border-rose-200 bg-rose-50 text-rose-700",           dot: "bg-rose-500" },
+    return:       { label: "Return",       color: "border-teal-200 bg-teal-50 text-teal-700",           dot: "bg-teal-500" },
   };
 
-  const grnStatusConfig: Record<string, { label: string; color: string }> = {
-    received: { label: "Received", color: "bg-emerald-100 text-emerald-700" },
-    partial: { label: "Partial", color: "bg-amber-100 text-amber-700" },
-    inspecting: { label: "Inspecting", color: "bg-blue-100 text-blue-700" },
-    rejected: { label: "Rejected", color: "bg-red-100 text-red-700" },
+  const grnStatusConfig: Record<string, { label: string; color: string; dot: string }> = {
+    received:   { label: "Received",   color: "border-emerald-200 bg-emerald-50 text-emerald-700", dot: "bg-emerald-500 animate-pulse" },
+    partial:    { label: "Partial",    color: "border-amber-200 bg-amber-50 text-amber-700",        dot: "bg-amber-500" },
+    inspecting: { label: "Inspecting", color: "border-blue-200 bg-blue-50 text-blue-700",           dot: "bg-blue-500 animate-pulse" },
+    rejected:   { label: "Rejected",   color: "border-rose-200 bg-rose-50 text-rose-700",           dot: "bg-rose-500" },
   };
 
   // Derived KPI values
   const lowStockCount = stock.filter((s) => s.quantity <= s.reorder_level && s.reorder_level > 0 && s.quantity > 0).length;
   const outOfStockCount = stock.filter((s) => s.quantity <= 0).length;
+  const healthyCount = Math.max(0, stock.length - lowStockCount - outOfStockCount);
 
   return (
-    <div className="space-y-6">
-      {/* ── Module Hero Strip ────────────────────────────────────────────── */}
-      <div className="rounded-2xl overflow-hidden shadow-sm border border-violet-100">
-        <div className="relative bg-linear-to-r from-violet-500 to-purple-600 px-4 py-4 sm:px-6 sm:py-0 sm:h-24 flex flex-col sm:flex-row sm:items-center gap-3 sm:justify-between overflow-hidden">
-          <div className="absolute -top-6 -right-6 w-32 h-32 rounded-full bg-white/10" />
-          <div className="absolute top-4 right-16 w-16 h-16 rounded-full bg-white/5" />
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
-              <Warehouse className="h-6 w-6 text-white" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-white">Warehouse</h1>
-              <p className="text-sm text-white/70 hidden sm:block">Track stock levels across all warehouses</p>
-            </div>
-          </div>
+    <div className="space-y-5 sm:space-y-6">
+      {/* ── Premium Hero ─────────────────────────────────────────────── */}
+      <PremiumHero
+        gradient="violet"
+        icon={Warehouse}
+        eyebrow={<><Sparkles className="size-3" /> Inventory Control</>}
+        title="Warehouse"
+        description="Track stock levels, movements and goods receipts across every warehouse."
+        actions={
           <Button
             onClick={() => setAdjustOpen(true)}
             size="sm"
-            className="bg-white text-violet-700 hover:bg-violet-50 font-semibold shadow-sm shrink-0"
+            className="bg-white text-violet-700 hover:bg-violet-50 font-semibold shadow-md shrink-0"
           >
-            <Package className="h-4 w-4 mr-1.5" />
+            <Package className="size-4 mr-1.5" />
             Stock Adjustment
           </Button>
-        </div>
-        <div className="bg-white px-6 py-3 flex flex-wrap gap-4 border-t border-violet-100">
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-violet-500" />
-            <span className="text-sm text-slate-600 font-medium">{count} SKUs Tracked</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-amber-400" />
-            <span className="text-sm text-slate-600 font-medium">{lowStockCount} Low Stock</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-red-400" />
-            <span className="text-sm text-slate-600 font-medium">{outOfStockCount} Out of Stock</span>
-          </div>
-        </div>
-      </div>
+        }
+      >
+        <HeroStatGrid>
+          <HeroStat icon={Boxes}          label="Total SKUs"    value={count.toLocaleString()} />
+          <HeroStat icon={AlertTriangle}  label="Low Stock"     value={lowStockCount}     accent="warning" />
+          <HeroStat icon={TrendingDown}   label="Out of Stock"  value={outOfStockCount}   accent="danger"  />
+          <HeroStat icon={Building2}      label="Warehouses"    value={warehouses.length} accent="info"    />
+        </HeroStatGrid>
+      </PremiumHero>
 
-      {/* ── KPI Cards ────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="rounded-xl bg-white border border-slate-200 shadow-sm overflow-hidden">
-          <div className="h-1 bg-linear-to-r from-violet-500 to-purple-600" />
-          <div className="p-4 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-violet-100 flex items-center justify-center shrink-0">
-              <Package className="h-5 w-5 text-violet-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-slate-900">{count}</p>
-              <p className="text-xs text-slate-500 font-medium">Total SKUs</p>
-            </div>
-          </div>
-        </div>
-        <div className="rounded-xl bg-white border border-slate-200 shadow-sm overflow-hidden">
-          <div className="h-1 bg-linear-to-r from-violet-500 to-purple-600" />
-          <div className="p-4 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center shrink-0">
-              <AlertTriangle className="h-5 w-5 text-amber-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-slate-900">{lowStockCount}</p>
-              <p className="text-xs text-slate-500 font-medium">Low Stock</p>
-            </div>
-          </div>
-        </div>
-        <div className="rounded-xl bg-white border border-slate-200 shadow-sm overflow-hidden">
-          <div className="h-1 bg-linear-to-r from-violet-500 to-purple-600" />
-          <div className="p-4 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center shrink-0">
-              <TrendingDown className="h-5 w-5 text-red-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-slate-900">{outOfStockCount}</p>
-              <p className="text-xs text-slate-500 font-medium">Out of Stock</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Tab Bar ──────────────────────────────────────────────────────── */}
-      <div className="bg-white rounded-xl border border-slate-200 p-1 flex gap-1 overflow-x-auto">
+      {/* ── Tab Bar ──────────────────────────────────────────────────── */}
+      <div className="bg-white rounded-xl border border-slate-200 p-1 flex gap-1 overflow-x-auto shadow-sm">
         {([
-          { key: "stock" as Tab, label: "Stock Levels", icon: Package },
-          { key: "movements" as Tab, label: "Movements", icon: ArrowUpDown },
-          { key: "grns" as Tab, label: "GRN", icon: ClipboardCheck },
-        ]).map(({ key, label, icon: Icon }) => (
+          { key: "stock" as Tab,      label: "Stock Levels", icon: Package,         badge: count },
+          { key: "movements" as Tab,  label: "Movements",    icon: ArrowUpDown,     badge: movementsCount || null },
+          { key: "grns" as Tab,       label: "GRN",          icon: ClipboardCheck,  badge: grnsCount || null },
+        ]).map(({ key, label, icon: Icon, badge }) => (
           <button
             key={key}
             onClick={() => setActiveTab(key)}
-            className={`flex items-center gap-2 px-3 sm:px-4 py-2.5 rounded-lg text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${
+            className={`flex items-center gap-1.5 px-3 sm:px-4 py-2.5 rounded-lg text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${
               activeTab === key
-                ? "bg-violet-100 text-violet-700 shadow-sm"
+                ? "bg-linear-to-r from-violet-600 to-purple-600 text-white shadow-md"
                 : "text-slate-500 hover:text-slate-700 hover:bg-slate-50"
             }`}
           >
-            <Icon className="h-4 w-4 shrink-0" />
+            <Icon className="size-4 shrink-0" />
             {label}
+            {badge != null && (
+              <span className={`ml-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-semibold tabular-nums ${
+                activeTab === key ? "bg-white/25 text-white" : "bg-slate-100 text-slate-600"
+              }`}>
+                {badge}
+              </span>
+            )}
           </button>
         ))}
       </div>
@@ -366,10 +339,10 @@ export function WarehouseClient({ initialStock, totalCount, initialWarehouses }:
       {/* ══════════════ STOCK LEVELS TAB ══════════════ */}
       {activeTab === "stock" && (
         <>
-          {/* ── Search / Filter Bar ───────────────────────────────────────────── */}
-          <div className="bg-white rounded-xl border border-slate-200 p-3 flex flex-col sm:flex-row gap-3">
+          {/* ── Search / Filter Bar ───────────────────────────────── */}
+          <div className="bg-white rounded-xl border border-slate-200 p-3 flex flex-col sm:flex-row gap-3 shadow-sm">
             <div className="relative flex-1 sm:max-w-xs">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
               <Input
                 placeholder="Search product or SKU…"
                 value={search}
@@ -378,16 +351,91 @@ export function WarehouseClient({ initialStock, totalCount, initialWarehouses }:
               />
             </div>
             <Select value={warehouseFilter} onValueChange={(v) => { setWarehouseFilter(v); setPage(1); }}>
-              <SelectTrigger className="w-44"><SelectValue placeholder="All warehouses" /></SelectTrigger>
+              <SelectTrigger className="sm:w-48"><SelectValue placeholder="All warehouses" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Warehouses</SelectItem>
                 {warehouses.map((w) => <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>)}
               </SelectContent>
             </Select>
+            <div className="hidden sm:flex items-center gap-2 ml-auto text-xs text-slate-500">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 font-semibold text-emerald-700">
+                <span className="size-1.5 rounded-full bg-emerald-500" /> {healthyCount} healthy
+              </span>
+            </div>
           </div>
 
-          {/* ── Stock Table ──────────────────────────────────────────────────── */}
-          <div className="rounded-xl border border-slate-200 overflow-x-auto bg-white shadow-sm">
+          {/* ── Mobile: Stock Cards ───────────────────────────────── */}
+          <div className="grid grid-cols-1 gap-2.5 md:hidden">
+            {isLoading ? (
+              Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="rounded-xl border border-slate-200 bg-white p-3">
+                  <Skeleton className="h-5 w-2/3 mb-2" />
+                  <Skeleton className="h-3 w-1/3" />
+                </div>
+              ))
+            ) : stock.length === 0 ? (
+              <EmptyState
+                icon={Package}
+                title="No stock records found"
+                description="Add opening stock to begin tracking inventory."
+                action={
+                  <Button
+                    onClick={() => setAdjustOpen(true)}
+                    className="bg-linear-to-r from-violet-600 to-purple-600 text-white hover:from-violet-700 hover:to-purple-700"
+                  >
+                    <Package className="size-4 mr-1.5" /> Add Opening Stock
+                  </Button>
+                }
+              />
+            ) : (
+              stock.map((row) => {
+                const isLow = row.quantity <= row.reorder_level && row.reorder_level > 0;
+                const isOut = row.quantity <= 0;
+                const statusCfg = isOut
+                  ? { bg: "border-rose-200 bg-rose-50 text-rose-700", dot: "bg-rose-500", label: "Out of Stock" }
+                  : isLow
+                    ? { bg: "border-amber-200 bg-amber-50 text-amber-700", dot: "bg-amber-500", label: "Low Stock" }
+                    : { bg: "border-emerald-200 bg-emerald-50 text-emerald-700", dot: "bg-emerald-500 animate-pulse", label: "In Stock" };
+                return (
+                  <div key={row.id} className="relative overflow-hidden rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+                    <div className={`absolute left-0 top-0 h-full w-1 ${isOut ? "bg-rose-500" : isLow ? "bg-amber-500" : "bg-emerald-500"}`} />
+                    <div className="flex items-start gap-2.5 pl-1.5">
+                      <div className={`size-9 rounded-lg bg-linear-to-br ${productGradient(row.product_name)} flex items-center justify-center shrink-0 text-white font-bold text-xs shadow-sm`}>
+                        {row.product_name.slice(0, 2).toUpperCase()}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="font-semibold text-slate-900 text-sm truncate">{row.product_name}</p>
+                          <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold shrink-0 ${statusCfg.bg}`}>
+                            <span className={`size-1.5 rounded-full ${statusCfg.dot}`} />
+                            {statusCfg.label}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-500 font-mono truncate">{row.sku} · {row.warehouse_name}</p>
+                      </div>
+                    </div>
+                    <div className="mt-2.5 grid grid-cols-3 gap-2 pt-2 border-t border-slate-100 text-[11px]">
+                      <div>
+                        <p className="text-slate-400 uppercase tracking-wide">Qty</p>
+                        <p className={`font-bold tabular-nums ${isOut ? "text-rose-600" : isLow ? "text-amber-600" : "text-slate-900"}`}>{row.quantity}</p>
+                      </div>
+                      <div>
+                        <p className="text-slate-400 uppercase tracking-wide">Unit</p>
+                        <p className="font-semibold text-slate-700 truncate">{row.unit}</p>
+                      </div>
+                      <div>
+                        <p className="text-slate-400 uppercase tracking-wide">Reorder</p>
+                        <p className="font-semibold text-slate-700 tabular-nums">{row.reorder_level}</p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          {/* ── Desktop: Stock Table ──────────────────────────────── */}
+          <div className="hidden md:block rounded-xl border border-slate-200 overflow-x-auto bg-white shadow-sm">
             <Table>
               <TableHeader>
                 <TableRow className="bg-slate-50 border-y border-slate-200">
@@ -407,21 +455,20 @@ export function WarehouseClient({ initialStock, totalCount, initialWarehouses }:
                   ))
                 ) : stock.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="py-16 text-center">
-                      <div className="flex flex-col items-center">
-                        <div className="w-16 h-16 rounded-2xl bg-linear-to-br from-violet-500 to-purple-600 flex items-center justify-center mb-4 shadow-lg shadow-violet-500/30">
-                          <Package className="h-8 w-8 text-white" />
-                        </div>
-                        <p className="font-bold text-slate-800 text-base">No stock records found</p>
-                        <p className="text-sm text-slate-500 mt-1">Add opening stock to begin tracking inventory</p>
-                        <Button
-                          onClick={() => setAdjustOpen(true)}
-                          className="mt-4 bg-linear-to-r from-violet-500 to-purple-600 text-white hover:from-violet-600 hover:to-purple-700"
-                        >
-                          <Package className="h-4 w-4 mr-1.5" />
-                          Add Opening Stock
-                        </Button>
-                      </div>
+                    <TableCell colSpan={7} className="p-0">
+                      <EmptyState
+                        icon={Package}
+                        title="No stock records found"
+                        description="Add opening stock to begin tracking inventory."
+                        action={
+                          <Button
+                            onClick={() => setAdjustOpen(true)}
+                            className="bg-linear-to-r from-violet-600 to-purple-600 text-white hover:from-violet-700 hover:to-purple-700"
+                          >
+                            <Package className="size-4 mr-1.5" /> Add Opening Stock
+                          </Button>
+                        }
+                      />
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -429,26 +476,45 @@ export function WarehouseClient({ initialStock, totalCount, initialWarehouses }:
                     const isLow = row.quantity <= row.reorder_level && row.reorder_level > 0;
                     const isOut = row.quantity <= 0;
                     return (
-                      <TableRow key={row.id} className="hover:bg-violet-50/20 transition-colors border-b border-slate-100">
-                        <TableCell className="font-medium text-slate-900">{row.product_name}</TableCell>
+                      <TableRow key={row.id} className="hover:bg-violet-50/40 transition-colors border-b border-slate-100">
+                        <TableCell>
+                          <div className="flex items-center gap-2.5">
+                            <div className={`size-8 rounded-lg bg-linear-to-br ${productGradient(row.product_name)} flex items-center justify-center shrink-0 text-white font-bold text-[11px] shadow-sm`}>
+                              {row.product_name.slice(0, 2).toUpperCase()}
+                            </div>
+                            <span className="font-medium text-slate-900">{row.product_name}</span>
+                          </div>
+                        </TableCell>
                         <TableCell className="text-slate-500 text-xs font-mono">{row.sku}</TableCell>
-                        <TableCell className="text-slate-500">{row.warehouse_name}</TableCell>
-                        <TableCell className={`text-right font-semibold ${isOut ? "text-red-600" : isLow ? "text-amber-600" : "text-slate-900"}`}>
+                        <TableCell className="text-slate-600">{row.warehouse_name}</TableCell>
+                        <TableCell className={`text-right font-semibold tabular-nums ${isOut ? "text-rose-600" : isLow ? "text-amber-600" : "text-slate-900"}`}>
                           {row.quantity}
                         </TableCell>
                         <TableCell className="text-slate-500">{row.unit}</TableCell>
                         <TableCell>
                           {isOut ? (
-                            <span className="rounded-full px-2.5 py-1 text-xs font-semibold bg-red-100 text-red-700">Out of Stock</span>
+                            <span className="inline-flex items-center gap-1.5 rounded-full border border-rose-200 bg-rose-50 px-2 py-0.5 text-[11px] font-semibold text-rose-700">
+                              <span className="size-1.5 rounded-full bg-rose-500" />
+                              Out of Stock
+                            </span>
                           ) : isLow ? (
-                            <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold bg-amber-100 text-amber-700">
-                              <AlertTriangle className="h-3 w-3" />Low Stock
+                            <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700">
+                              <AlertTriangle className="size-3" />
+                              Low Stock
                             </span>
                           ) : (
-                            <span className="rounded-full px-2.5 py-1 text-xs font-semibold bg-emerald-100 text-emerald-700">In Stock</span>
+                            <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">
+                              <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                              In Stock
+                            </span>
                           )}
                         </TableCell>
-                        <TableCell className="text-slate-500 text-xs">{dateStr(row.updated_at)}</TableCell>
+                        <TableCell className="text-slate-500 text-xs whitespace-nowrap">
+                          <span className="inline-flex items-center gap-1">
+                            <CalendarDays className="size-3 text-slate-400" />
+                            {dateStr(row.updated_at)}
+                          </span>
+                        </TableCell>
                       </TableRow>
                     );
                   })
@@ -459,7 +525,7 @@ export function WarehouseClient({ initialStock, totalCount, initialWarehouses }:
 
           {count > limit && (
             <div className="flex items-center justify-between text-sm text-slate-500">
-              <span>Showing {(page - 1) * limit + 1}–{Math.min(page * limit, count)} of {count}</span>
+              <span className="tabular-nums">Showing {(page - 1) * limit + 1}–{Math.min(page * limit, count)} of {count}</span>
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>Previous</Button>
                 <Button variant="outline" size="sm" disabled={page * limit >= count} onClick={() => setPage((p) => p + 1)}>Next</Button>
@@ -472,9 +538,9 @@ export function WarehouseClient({ initialStock, totalCount, initialWarehouses }:
       {/* ══════════════ STOCK MOVEMENTS TAB ══════════════ */}
       {activeTab === "movements" && (
         <>
-          <div className="bg-white rounded-xl border border-slate-200 p-3 flex flex-col sm:flex-row gap-3">
+          <div className="bg-white rounded-xl border border-slate-200 p-3 flex flex-col sm:flex-row gap-3 shadow-sm">
             <div className="relative flex-1 sm:max-w-xs">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
               <Input
                 placeholder="Search notes…"
                 value={movementsSearch}
@@ -483,7 +549,7 @@ export function WarehouseClient({ initialStock, totalCount, initialWarehouses }:
               />
             </div>
             <Select value={movementsType} onValueChange={(v) => { setMovementsType(v); setMovementsPage(1); }}>
-              <SelectTrigger className="w-44"><SelectValue placeholder="All types" /></SelectTrigger>
+              <SelectTrigger className="sm:w-48"><SelectValue placeholder="All types" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Types</SelectItem>
                 <SelectItem value="stock_in">Stock In</SelectItem>
@@ -500,7 +566,63 @@ export function WarehouseClient({ initialStock, totalCount, initialWarehouses }:
             </Select>
           </div>
 
-          <div className="rounded-xl border border-slate-200 overflow-x-auto bg-white shadow-sm">
+          {/* Mobile: Movement cards */}
+          <div className="grid grid-cols-1 gap-2.5 md:hidden">
+            {movementsLoading ? (
+              Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="rounded-xl border border-slate-200 bg-white p-3">
+                  <Skeleton className="h-5 w-2/3 mb-2" />
+                  <Skeleton className="h-3 w-1/3" />
+                </div>
+              ))
+            ) : movements.length === 0 ? (
+              <EmptyState
+                icon={ArrowUpDown}
+                title="No stock movements yet"
+                description="Movements appear here when stock is adjusted, received from LPOs, or sold."
+              />
+            ) : (
+              movements.map((m) => {
+                const typeInfo = movementTypeLabel[m.type] ?? { label: m.type, color: "border-slate-200 bg-slate-50 text-slate-700", dot: "bg-slate-400" };
+                const isPositive = m.quantity > 0;
+                return (
+                  <div key={m.id} className="relative overflow-hidden rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+                    <div className={`absolute left-0 top-0 h-full w-1 ${isPositive ? "bg-emerald-500" : "bg-rose-500"}`} />
+                    <div className="flex items-start justify-between gap-2 pl-1.5">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-semibold text-slate-900 text-sm truncate">{m.product_name}</p>
+                        <p className="text-[11px] text-slate-500 truncate">{m.warehouse_name}</p>
+                      </div>
+                      <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold shrink-0 ${typeInfo.color}`}>
+                        <span className={`size-1.5 rounded-full ${typeInfo.dot}`} />
+                        {typeInfo.label}
+                      </span>
+                    </div>
+                    <div className="mt-2.5 grid grid-cols-3 gap-2 pt-2 border-t border-slate-100 text-[11px]">
+                      <div>
+                        <p className="text-slate-400 uppercase tracking-wide">Qty</p>
+                        <p className={`font-bold tabular-nums ${isPositive ? "text-emerald-600" : "text-rose-600"}`}>
+                          {isPositive ? "+" : ""}{m.quantity}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-slate-400 uppercase tracking-wide">Unit Cost</p>
+                        <p className="font-semibold text-slate-700 tabular-nums">{m.unit_cost != null ? `KES ${Number(m.unit_cost).toLocaleString()}` : "—"}</p>
+                      </div>
+                      <div>
+                        <p className="text-slate-400 uppercase tracking-wide">Date</p>
+                        <p className="font-semibold text-slate-700">{dateStr(m.created_at)}</p>
+                      </div>
+                    </div>
+                    {m.notes && <p className="mt-2 text-[11px] text-slate-500 pt-2 border-t border-slate-100 line-clamp-2">{m.notes}</p>}
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          {/* Desktop: Movement table */}
+          <div className="hidden md:block rounded-xl border border-slate-200 overflow-x-auto bg-white shadow-sm">
             <Table>
               <TableHeader>
                 <TableRow className="bg-slate-50 border-y border-slate-200">
@@ -520,32 +642,33 @@ export function WarehouseClient({ initialStock, totalCount, initialWarehouses }:
                   ))
                 ) : movements.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="py-16 text-center">
-                      <div className="flex flex-col items-center">
-                        <div className="w-16 h-16 rounded-2xl bg-linear-to-br from-violet-500 to-purple-600 flex items-center justify-center mb-4 shadow-lg shadow-violet-500/30">
-                          <ArrowUpDown className="h-8 w-8 text-white" />
-                        </div>
-                        <p className="font-bold text-slate-800 text-base">No stock movements yet</p>
-                        <p className="text-sm text-slate-500 mt-1">Movements appear here when stock is adjusted, received from LPOs, or sold</p>
-                      </div>
+                    <TableCell colSpan={7} className="p-0">
+                      <EmptyState
+                        icon={ArrowUpDown}
+                        title="No stock movements yet"
+                        description="Movements appear here when stock is adjusted, received from LPOs, or sold."
+                      />
                     </TableCell>
                   </TableRow>
                 ) : (
                   movements.map((m) => {
-                    const typeInfo = movementTypeLabel[m.type] ?? { label: m.type, color: "bg-slate-100 text-slate-700" };
+                    const typeInfo = movementTypeLabel[m.type] ?? { label: m.type, color: "border-slate-200 bg-slate-50 text-slate-700", dot: "bg-slate-400" };
                     const isPositive = m.quantity > 0;
                     return (
-                      <TableRow key={m.id} className="hover:bg-violet-50/20 transition-colors border-b border-slate-100">
+                      <TableRow key={m.id} className="hover:bg-violet-50/40 transition-colors border-b border-slate-100">
                         <TableCell className="text-slate-500 text-xs whitespace-nowrap">{dateTimeStr(m.created_at)}</TableCell>
                         <TableCell>
-                          <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${typeInfo.color}`}>{typeInfo.label}</span>
+                          <span className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px] font-semibold ${typeInfo.color}`}>
+                            <span className={`size-1.5 rounded-full ${typeInfo.dot}`} />
+                            {typeInfo.label}
+                          </span>
                         </TableCell>
                         <TableCell className="font-medium text-slate-900">{m.product_name}</TableCell>
-                        <TableCell className="text-slate-500">{m.warehouse_name}</TableCell>
-                        <TableCell className={`text-right font-semibold ${isPositive ? "text-emerald-600" : "text-red-600"}`}>
+                        <TableCell className="text-slate-600">{m.warehouse_name}</TableCell>
+                        <TableCell className={`text-right font-semibold tabular-nums ${isPositive ? "text-emerald-600" : "text-rose-600"}`}>
                           {isPositive ? "+" : ""}{m.quantity}
                         </TableCell>
-                        <TableCell className="text-right text-slate-500">
+                        <TableCell className="text-right text-slate-500 tabular-nums">
                           {m.unit_cost != null ? `KES ${Number(m.unit_cost).toLocaleString()}` : "—"}
                         </TableCell>
                         <TableCell className="text-slate-500 text-xs max-w-50 truncate">{m.notes ?? "—"}</TableCell>
@@ -559,7 +682,7 @@ export function WarehouseClient({ initialStock, totalCount, initialWarehouses }:
 
           {movementsCount > limit && (
             <div className="flex items-center justify-between text-sm text-slate-500">
-              <span>Showing {(movementsPage - 1) * limit + 1}–{Math.min(movementsPage * limit, movementsCount)} of {movementsCount}</span>
+              <span className="tabular-nums">Showing {(movementsPage - 1) * limit + 1}–{Math.min(movementsPage * limit, movementsCount)} of {movementsCount}</span>
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" disabled={movementsPage === 1} onClick={() => setMovementsPage((p) => p - 1)}>Previous</Button>
                 <Button variant="outline" size="sm" disabled={movementsPage * limit >= movementsCount} onClick={() => setMovementsPage((p) => p + 1)}>Next</Button>
@@ -572,9 +695,9 @@ export function WarehouseClient({ initialStock, totalCount, initialWarehouses }:
       {/* ══════════════ GRN TAB ══════════════ */}
       {activeTab === "grns" && (
         <>
-          <div className="bg-white rounded-xl border border-slate-200 p-3 flex flex-col sm:flex-row gap-3">
+          <div className="bg-white rounded-xl border border-slate-200 p-3 flex flex-col sm:flex-row gap-3 shadow-sm">
             <div className="relative flex-1 sm:max-w-xs">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
               <Input
                 placeholder="Search GRN number…"
                 value={grnsSearch}
@@ -584,7 +707,59 @@ export function WarehouseClient({ initialStock, totalCount, initialWarehouses }:
             </div>
           </div>
 
-          <div className="rounded-xl border border-slate-200 overflow-x-auto bg-white shadow-sm">
+          {/* Mobile: GRN cards */}
+          <div className="grid grid-cols-1 gap-2.5 md:hidden">
+            {grnsLoading ? (
+              Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="rounded-xl border border-slate-200 bg-white p-3">
+                  <Skeleton className="h-5 w-2/3 mb-2" />
+                  <Skeleton className="h-3 w-1/3" />
+                </div>
+              ))
+            ) : grns.length === 0 ? (
+              <EmptyState
+                icon={ClipboardCheck}
+                title="No goods received notes yet"
+                description="GRNs are created automatically when an LPO is marked as received."
+              />
+            ) : (
+              grns.map((g) => {
+                const statusInfo = grnStatusConfig[g.status] ?? { label: g.status, color: "border-slate-200 bg-slate-50 text-slate-700", dot: "bg-slate-400" };
+                return (
+                  <div key={g.id} className="relative overflow-hidden rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+                    <div className="absolute left-0 top-0 h-full w-1 bg-linear-to-b from-violet-500 to-purple-600" />
+                    <div className="flex items-start justify-between gap-2 pl-1.5">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-mono text-sm font-semibold text-violet-700 truncate">{g.grn_number}</p>
+                        <p className="text-[11px] text-slate-500 truncate">{g.supplier_name}</p>
+                      </div>
+                      <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold shrink-0 ${statusInfo.color}`}>
+                        <span className={`size-1.5 rounded-full ${statusInfo.dot}`} />
+                        {statusInfo.label}
+                      </span>
+                    </div>
+                    <div className="mt-2.5 grid grid-cols-2 gap-2 pt-2 border-t border-slate-100 text-[11px]">
+                      <div>
+                        <p className="text-slate-400 uppercase tracking-wide">LPO</p>
+                        <p className="font-mono font-semibold text-slate-700 truncate">{g.lpo_number}</p>
+                      </div>
+                      <div>
+                        <p className="text-slate-400 uppercase tracking-wide">Warehouse</p>
+                        <p className="font-semibold text-slate-700 truncate">{g.warehouse_name}</p>
+                      </div>
+                    </div>
+                    <div className="mt-2 pt-2 border-t border-slate-100 flex items-center gap-1 text-[11px] text-slate-500">
+                      <CalendarDays className="size-3" />
+                      {dateTimeStr(g.received_at || g.created_at)}
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          {/* Desktop: GRN table */}
+          <div className="hidden md:block rounded-xl border border-slate-200 overflow-x-auto bg-white shadow-sm">
             <Table>
               <TableHeader>
                 <TableRow className="bg-slate-50 border-y border-slate-200">
@@ -604,29 +779,35 @@ export function WarehouseClient({ initialStock, totalCount, initialWarehouses }:
                   ))
                 ) : grns.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="py-16 text-center">
-                      <div className="flex flex-col items-center">
-                        <div className="w-16 h-16 rounded-2xl bg-linear-to-br from-violet-500 to-purple-600 flex items-center justify-center mb-4 shadow-lg shadow-violet-500/30">
-                          <ClipboardCheck className="h-8 w-8 text-white" />
-                        </div>
-                        <p className="font-bold text-slate-800 text-base">No goods received notes yet</p>
-                        <p className="text-sm text-slate-500 mt-1">GRNs are created automatically when an LPO is marked as received</p>
-                      </div>
+                    <TableCell colSpan={7} className="p-0">
+                      <EmptyState
+                        icon={ClipboardCheck}
+                        title="No goods received notes yet"
+                        description="GRNs are created automatically when an LPO is marked as received."
+                      />
                     </TableCell>
                   </TableRow>
                 ) : (
                   grns.map((g) => {
-                    const statusInfo = grnStatusConfig[g.status] ?? { label: g.status, color: "bg-slate-100 text-slate-700" };
+                    const statusInfo = grnStatusConfig[g.status] ?? { label: g.status, color: "border-slate-200 bg-slate-50 text-slate-700", dot: "bg-slate-400" };
                     return (
-                      <TableRow key={g.id} className="hover:bg-violet-50/20 transition-colors border-b border-slate-100">
+                      <TableRow key={g.id} className="hover:bg-violet-50/40 transition-colors border-b border-slate-100">
                         <TableCell className="font-semibold text-violet-700 font-mono text-sm">{g.grn_number}</TableCell>
                         <TableCell className="text-slate-600 font-mono text-sm">{g.lpo_number}</TableCell>
                         <TableCell className="font-medium text-slate-900">{g.supplier_name}</TableCell>
-                        <TableCell className="text-slate-500">{g.warehouse_name}</TableCell>
+                        <TableCell className="text-slate-600">{g.warehouse_name}</TableCell>
                         <TableCell>
-                          <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${statusInfo.color}`}>{statusInfo.label}</span>
+                          <span className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px] font-semibold ${statusInfo.color}`}>
+                            <span className={`size-1.5 rounded-full ${statusInfo.dot}`} />
+                            {statusInfo.label}
+                          </span>
                         </TableCell>
-                        <TableCell className="text-slate-500 text-xs whitespace-nowrap">{dateTimeStr(g.received_at || g.created_at)}</TableCell>
+                        <TableCell className="text-slate-500 text-xs whitespace-nowrap">
+                          <span className="inline-flex items-center gap-1">
+                            <CalendarDays className="size-3 text-slate-400" />
+                            {dateTimeStr(g.received_at || g.created_at)}
+                          </span>
+                        </TableCell>
                         <TableCell className="text-slate-500 text-xs max-w-50 truncate">{g.notes ?? "—"}</TableCell>
                       </TableRow>
                     );
@@ -638,7 +819,7 @@ export function WarehouseClient({ initialStock, totalCount, initialWarehouses }:
 
           {grnsCount > limit && (
             <div className="flex items-center justify-between text-sm text-slate-500">
-              <span>Showing {(grnsPage - 1) * limit + 1}–{Math.min(grnsPage * limit, grnsCount)} of {grnsCount}</span>
+              <span className="tabular-nums">Showing {(grnsPage - 1) * limit + 1}–{Math.min(grnsPage * limit, grnsCount)} of {grnsCount}</span>
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" disabled={grnsPage === 1} onClick={() => setGrnsPage((p) => p - 1)}>Previous</Button>
                 <Button variant="outline" size="sm" disabled={grnsPage * limit >= grnsCount} onClick={() => setGrnsPage((p) => p + 1)}>Next</Button>
@@ -651,29 +832,31 @@ export function WarehouseClient({ initialStock, totalCount, initialWarehouses }:
       {/* Adjustment Sheet */}
       <Sheet open={adjustOpen} onOpenChange={(o) => { if (!o) { setAdjustOpen(false); reset(); } }}>
         <SheetContent className="w-full sm:max-w-md flex flex-col p-0 overflow-hidden">
-          <div className="h-1.5 w-full bg-linear-to-r from-violet-500 to-purple-600 shrink-0" />
+          <div className="h-1.5 w-full bg-linear-to-r from-violet-600 to-purple-600 shrink-0" />
           <SheetHeader className="px-6 pt-5 pb-4 shrink-0">
             <div className="flex items-center gap-3">
-              <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-violet-100">
-                <Package className="size-4 text-violet-600" />
+              <div className="flex items-center justify-center size-10 rounded-xl bg-linear-to-br from-violet-500 to-purple-600 shadow-md shadow-violet-500/30">
+                <Package className="size-5 text-white" />
               </div>
-              <SheetTitle className="text-slate-900 text-lg font-semibold">Stock Adjustment</SheetTitle>
+              <div className="min-w-0">
+                <SheetTitle className="text-slate-900 text-lg font-semibold leading-tight">Stock Adjustment</SheetTitle>
+                <SheetDescription className="text-slate-500 text-xs mt-0.5">
+                  Record a stock movement or manual adjustment.
+                </SheetDescription>
+              </div>
             </div>
-            <SheetDescription className="text-slate-500 text-sm mt-1 ml-12">
-              Record a stock movement or manual adjustment.
-            </SheetDescription>
           </SheetHeader>
           <Separator className="shrink-0" />
           <form onSubmit={handleSubmit(onAdjust)} className="flex flex-col flex-1 overflow-hidden">
             <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
               <div className="space-y-1.5">
-                <Label>Product <span className="text-red-500">*</span></Label>
+                <Label>Product <span className="text-rose-500">*</span></Label>
                 <Controller
                   control={control}
                   name="product_id"
                   render={({ field }) => (
                     <Select value={field.value} onValueChange={field.onChange}>
-                      <SelectTrigger className={errors.product_id ? "border-red-400" : ""}>
+                      <SelectTrigger className={errors.product_id ? "border-rose-400" : ""}>
                         <SelectValue placeholder="Select product…" />
                       </SelectTrigger>
                       <SelectContent>
@@ -682,17 +865,17 @@ export function WarehouseClient({ initialStock, totalCount, initialWarehouses }:
                     </Select>
                   )}
                 />
-                {errors.product_id && <p className="text-xs text-red-500">{errors.product_id.message}</p>}
+                {errors.product_id && <p className="text-xs text-rose-500">{errors.product_id.message}</p>}
               </div>
 
               <div className="space-y-1.5">
-                <Label>Warehouse <span className="text-red-500">*</span></Label>
+                <Label>Warehouse <span className="text-rose-500">*</span></Label>
                 <Controller
                   control={control}
                   name="warehouse_id"
                   render={({ field }) => (
                     <Select value={field.value} onValueChange={field.onChange}>
-                      <SelectTrigger className={errors.warehouse_id ? "border-red-400" : ""}>
+                      <SelectTrigger className={errors.warehouse_id ? "border-rose-400" : ""}>
                         <SelectValue placeholder="Select warehouse…" />
                       </SelectTrigger>
                       <SelectContent>
@@ -701,11 +884,11 @@ export function WarehouseClient({ initialStock, totalCount, initialWarehouses }:
                     </Select>
                   )}
                 />
-                {errors.warehouse_id && <p className="text-xs text-red-500">{errors.warehouse_id.message}</p>}
+                {errors.warehouse_id && <p className="text-xs text-rose-500">{errors.warehouse_id.message}</p>}
               </div>
 
               <div className="space-y-1.5">
-                <Label>Movement Type <span className="text-red-500">*</span></Label>
+                <Label>Movement Type <span className="text-rose-500">*</span></Label>
                 <Controller
                   control={control}
                   name="type"
@@ -726,7 +909,7 @@ export function WarehouseClient({ initialStock, totalCount, initialWarehouses }:
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <Label>Quantity <span className="text-red-500">*</span> <span className="text-xs text-slate-400">(negative to reduce)</span></Label>
+                  <Label>Quantity <span className="text-rose-500">*</span> <span className="text-xs text-slate-400">(negative to reduce)</span></Label>
                   <Controller
                     control={control}
                     name="quantity"
@@ -735,11 +918,11 @@ export function WarehouseClient({ initialStock, totalCount, initialWarehouses }:
                         type="number" step="0.01"
                         value={field.value}
                         onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
-                        className={errors.quantity ? "border-red-400" : ""}
+                        className={errors.quantity ? "border-rose-400" : ""}
                       />
                     )}
                   />
-                  {errors.quantity && <p className="text-xs text-red-500">{errors.quantity.message}</p>}
+                  {errors.quantity && <p className="text-xs text-rose-500">{errors.quantity.message}</p>}
                 </div>
                 <div className="space-y-1.5">
                   <Label>Unit Cost (KES)</Label>
@@ -761,7 +944,11 @@ export function WarehouseClient({ initialStock, totalCount, initialWarehouses }:
             <Separator className="shrink-0" />
             <SheetFooter className="px-6 py-4 shrink-0 bg-slate-50 flex flex-row justify-end gap-2">
               <Button type="button" variant="outline" onClick={() => { setAdjustOpen(false); reset(); }}>Cancel</Button>
-              <Button type="submit" disabled={isSaving} className="bg-violet-600 hover:bg-violet-700 text-white min-w-32">
+              <Button
+                type="submit"
+                disabled={isSaving}
+                className="bg-linear-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white min-w-32 shadow-md shadow-violet-500/20"
+              >
                 {isSaving ? "Saving…" : "Save Adjustment"}
               </Button>
             </SheetFooter>

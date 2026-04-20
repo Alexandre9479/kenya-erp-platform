@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import {
   TrendingUp, FileText, Users, AlertTriangle,
-  ArrowUpRight, ArrowDownRight, Clock, ShoppingCart,
+  Clock, ShoppingCart,
   Package, CreditCard, Activity,
 } from "lucide-react";
 import Link from "next/link";
@@ -11,6 +11,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import RevenueChart from "@/components/dashboard/revenue-chart";
+import { PremiumHero, HeroStatGrid, HeroStat } from "@/components/ui/premium-hero";
 
 export const metadata: Metadata = { title: "Dashboard" };
 
@@ -116,83 +117,36 @@ export default async function DashboardPage() {
     expenses: Math.round(80_000 + i * 18_000 + Math.random() * 25_000),
   }));
 
-  const kpiCards = [
-    {
-      label: "Revenue This Month", value: KESShort(kpi.totalRevenue),
-      change: kpi.revenueChange, suffix: "vs last month",
-      icon: TrendingUp, gradient: "from-indigo-500 to-violet-600",
-      bg: "bg-indigo-50", textColor: "text-indigo-600",
-    },
-    {
-      label: "Outstanding Balance", value: KESShort(kpi.outstanding),
-      sub: "Unpaid sent & overdue invoices",
-      icon: CreditCard, gradient: "from-amber-500 to-orange-500",
-      bg: "bg-amber-50", textColor: "text-amber-600",
-    },
-    {
-      label: "Active Customers", value: kpi.totalCustomers.toLocaleString(),
-      sub: "Total registered customers",
-      icon: Users, gradient: "from-emerald-500 to-teal-600",
-      bg: "bg-emerald-50", textColor: "text-emerald-600",
-    },
-    {
-      label: "Overdue Invoices", value: String(kpi.overdueCount),
-      sub: `${kpi.lowStockCount} low-stock alerts`,
-      icon: AlertTriangle, gradient: "from-red-500 to-rose-600",
-      bg: "bg-red-50", textColor: "text-red-600",
-    },
-  ];
+  const greeting = new Date().getHours() < 12 ? "morning" : new Date().getHours() < 17 ? "afternoon" : "evening";
 
   return (
-    <div className="space-y-6">
-      {/* Welcome bar */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
-            Good {new Date().getHours() < 12 ? "morning" : new Date().getHours() < 17 ? "afternoon" : "evening"} 👋
-          </h1>
-          <p className="text-slate-500 text-sm mt-0.5">Here&apos;s what&apos;s happening with your business today.</p>
-        </div>
-        <Button asChild className="hidden sm:flex bg-linear-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 border-0 shadow-lg shadow-indigo-500/20 text-white">
-          <Link href="/sales/new">
-            <ShoppingCart className="mr-2 h-4 w-4" />New Invoice
-          </Link>
-        </Button>
-      </div>
-
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {kpiCards.map((card) => {
-          const Icon = card.icon;
-          return (
-            <Card key={card.label} className="relative overflow-hidden border-0 shadow-sm hover:shadow-md transition-shadow duration-200">
-              {/* Gradient top bar */}
-              <div className={`h-1 w-full bg-linear-to-r ${card.gradient}`} />
-              <CardContent className="pt-4 pb-4">
-                <div className="flex items-start justify-between mb-3">
-                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{card.label}</p>
-                  <div className={`w-9 h-9 rounded-xl ${card.bg} flex items-center justify-center shrink-0`}>
-                    <Icon className={`h-4 w-4 ${card.textColor}`} />
-                  </div>
-                </div>
-                <p className="text-2xl font-extrabold text-slate-900 tracking-tight">{card.value}</p>
-                {card.change !== undefined && (
-                  <div className="mt-1.5 flex items-center gap-1 text-xs">
-                    {card.change >= 0
-                      ? <ArrowUpRight className="h-3.5 w-3.5 text-emerald-500" />
-                      : <ArrowDownRight className="h-3.5 w-3.5 text-red-500" />}
-                    <span className={card.change >= 0 ? "text-emerald-600 font-medium" : "text-red-600 font-medium"}>
-                      {Math.abs(card.change)}%
-                    </span>
-                    <span className="text-slate-400">{card.suffix}</span>
-                  </div>
-                )}
-                {card.sub && <p className="mt-1.5 text-xs text-slate-400">{card.sub}</p>}
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
+    <div className="space-y-5 sm:space-y-6">
+      {/* Welcome Hero */}
+      <PremiumHero
+        gradient="indigo"
+        icon={Activity}
+        eyebrow={<><TrendingUp className="size-3" /> Live Overview</>}
+        title={`Good ${greeting}`}
+        description="Here's what's happening across your business today."
+        actions={
+          <Button asChild size="sm" className="bg-white text-indigo-700 hover:bg-indigo-50 font-semibold shadow-md">
+            <Link href="/sales/new">
+              <ShoppingCart className="size-4 mr-1.5" />New Invoice
+            </Link>
+          </Button>
+        }
+      >
+        <HeroStatGrid>
+          <HeroStat icon={TrendingUp}    label="Revenue (MTD)" value={KESShort(kpi.totalRevenue)}
+            sub={kpi.revenueChange >= 0 ? `+${kpi.revenueChange}% vs last` : `${kpi.revenueChange}% vs last`}
+            accent={kpi.revenueChange >= 0 ? "success" : "danger"} />
+          <HeroStat icon={CreditCard}    label="Outstanding"   value={KESShort(kpi.outstanding)} accent="warning" />
+          <HeroStat icon={Users}         label="Customers"     value={kpi.totalCustomers.toLocaleString()} accent="info" />
+          <HeroStat icon={AlertTriangle} label="Overdue"       value={kpi.overdueCount}
+            sub={`${kpi.lowStockCount} low-stock`}
+            accent="danger" />
+        </HeroStatGrid>
+      </PremiumHero>
 
       {/* Chart + Recent Invoices */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">

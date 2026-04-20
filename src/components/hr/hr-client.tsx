@@ -61,6 +61,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { EmployeeForm } from "@/components/hr/employee-form";
+import { PremiumHero, HeroStatGrid, HeroStat } from "@/components/ui/premium-hero";
 import type { Tables } from "@/lib/types/supabase";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -501,88 +502,32 @@ export function HRClient({ initialEmployees, totalCount }: HRClientProps) {
   // ─── Render ───────────────────────────────────────────────────────────────
 
   return (
-    <div className="space-y-6">
-      {/* ── Module Hero Strip ────────────────────────────────────────────── */}
-      <div className="rounded-2xl overflow-hidden shadow-sm border border-blue-100">
-        {/* Gradient top */}
-        <div className="relative bg-linear-to-r from-blue-500 to-indigo-600 px-4 py-4 sm:px-6 sm:py-0 sm:h-24 flex flex-col sm:flex-row sm:items-center gap-3 sm:justify-between overflow-hidden">
-          {/* Decorative blobs */}
-          <div className="absolute -top-6 -right-6 w-32 h-32 rounded-full bg-white/10" />
-          <div className="absolute top-4 right-16 w-16 h-16 rounded-full bg-white/5" />
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
-              <Users className="h-6 w-6 text-white" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-white">HR &amp; Payroll</h1>
-              <p className="text-sm text-white/70 hidden sm:block">Manage employees and run monthly payroll</p>
-            </div>
-          </div>
+    <div className="space-y-5 sm:space-y-6">
+      {/* ── Premium Hero ────────────────────────────────────────── */}
+      <PremiumHero
+        gradient="blue"
+        icon={Users}
+        eyebrow={<><TrendingUp className="size-3" /> People Operations</>}
+        title="HR & Payroll"
+        description="Manage employees, run monthly payroll, and handle leave requests — Kenya-ready with PAYE, NHIF/SHIF and NSSF."
+        actions={
           <Button
             onClick={openAdd}
             size="sm"
-            className="bg-white text-blue-700 hover:bg-blue-50 font-semibold shadow-sm shrink-0"
+            className="bg-white text-blue-700 hover:bg-blue-50 font-semibold shadow-md"
           >
-            <Plus className="h-4 w-4 mr-1.5" />
+            <Plus className="size-4 mr-1.5" />
             Add Employee
           </Button>
-        </div>
-        {/* KPI pills */}
-        <div className="bg-white px-6 py-3 flex flex-wrap gap-4 border-t border-blue-100">
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-blue-500" />
-            <span className="text-sm text-slate-600 font-medium">{total} Total Employees</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-indigo-400" />
-            <span className="text-sm text-slate-600 font-medium">{permanentCount} Permanent</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-amber-400" />
-            <span className="text-sm text-slate-600 font-medium">{contractCount} Contract</span>
-          </div>
-        </div>
-      </div>
-
-      {/* ── KPI Cards ────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="rounded-xl bg-white border border-slate-200 shadow-sm overflow-hidden">
-          <div className="h-1 bg-linear-to-r from-blue-500 to-indigo-600" />
-          <div className="p-4 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center shrink-0">
-              <Users className="h-5 w-5 text-blue-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-slate-900">{total}</p>
-              <p className="text-xs text-slate-500 font-medium">Active Employees</p>
-            </div>
-          </div>
-        </div>
-        <div className="rounded-xl bg-white border border-slate-200 shadow-sm overflow-hidden">
-          <div className="h-1 bg-linear-to-r from-blue-500 to-indigo-600" />
-          <div className="p-4 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center shrink-0">
-              <Briefcase className="h-5 w-5 text-indigo-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-slate-900">{permanentCount}</p>
-              <p className="text-xs text-slate-500 font-medium">Permanent Staff</p>
-            </div>
-          </div>
-        </div>
-        <div className="rounded-xl bg-white border border-slate-200 shadow-sm overflow-hidden">
-          <div className="h-1 bg-linear-to-r from-blue-500 to-indigo-600" />
-          <div className="p-4 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center shrink-0">
-              <Clock className="h-5 w-5 text-amber-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-slate-900">{contractCount}</p>
-              <p className="text-xs text-slate-500 font-medium">On Contract</p>
-            </div>
-          </div>
-        </div>
-      </div>
+        }
+      >
+        <HeroStatGrid>
+          <HeroStat icon={Users}     label="Employees" value={total.toLocaleString()} />
+          <HeroStat icon={Briefcase} label="Permanent" value={permanentCount} accent="info" />
+          <HeroStat icon={Clock}     label="Contract"  value={contractCount}  accent="warning" />
+          <HeroStat icon={CalendarDays} label="Leave" value={leaveCount || 0} sub={leaveCount ? "requests" : "none pending"} accent="success" />
+        </HeroStatGrid>
+      </PremiumHero>
 
       <Tabs defaultValue="employees">
         <div className="overflow-x-auto pb-1">

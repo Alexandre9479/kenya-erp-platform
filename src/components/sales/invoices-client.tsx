@@ -8,9 +8,12 @@ import {
   FileText,
   MoreHorizontal,
   TrendingUp,
-  Clock,
   AlertCircle,
   Banknote,
+  Sparkles,
+  CalendarDays,
+  Wallet,
+  Receipt,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -20,6 +23,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { PremiumHero, HeroStatGrid, HeroStat, EmptyState } from "@/components/ui/premium-hero";
 
 type InvoiceRow = {
   id: string;
@@ -33,17 +37,34 @@ type InvoiceRow = {
   amount_paid: number;
 };
 
-const statusConfig: Record<string, { label: string; className: string }> = {
-  draft: { label: "Draft", className: "bg-slate-100 text-slate-600" },
-  sent: { label: "Sent", className: "bg-blue-100 text-blue-700" },
-  partial: { label: "Partial", className: "bg-amber-100 text-amber-700" },
-  paid: { label: "Paid", className: "bg-emerald-100 text-emerald-700" },
-  overdue: { label: "Overdue", className: "bg-red-100 text-red-700" },
-  cancelled: { label: "Cancelled", className: "bg-slate-100 text-slate-400" },
+const statusConfig: Record<string, { label: string; bg: string; dot: string }> = {
+  draft:     { label: "Draft",     bg: "border-slate-200 bg-slate-50 text-slate-600",      dot: "bg-slate-400" },
+  sent:      { label: "Sent",      bg: "border-blue-200 bg-blue-50 text-blue-700",         dot: "bg-blue-500" },
+  partial:   { label: "Partial",   bg: "border-amber-200 bg-amber-50 text-amber-700",      dot: "bg-amber-500" },
+  paid:      { label: "Paid",      bg: "border-emerald-200 bg-emerald-50 text-emerald-700", dot: "bg-emerald-500 animate-pulse" },
+  overdue:   { label: "Overdue",   bg: "border-rose-200 bg-rose-50 text-rose-700",         dot: "bg-rose-500 animate-pulse" },
+  cancelled: { label: "Cancelled", bg: "border-slate-200 bg-slate-50 text-slate-400",      dot: "bg-slate-300" },
 };
 
 const KES = (v: number) => new Intl.NumberFormat("en-KE", { minimumFractionDigits: 2 }).format(v);
 const dateStr = (iso: string) => new Date(iso).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" });
+
+const AVATAR_PALETTE = [
+  "from-emerald-500 to-teal-600",
+  "from-teal-500 to-cyan-600",
+  "from-lime-500 to-emerald-600",
+  "from-indigo-500 to-blue-600",
+  "from-violet-500 to-purple-600",
+  "from-amber-500 to-orange-600",
+  "from-rose-500 to-pink-600",
+  "from-sky-500 to-blue-600",
+];
+
+function customerGradient(name: string) {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) >>> 0;
+  return AVATAR_PALETTE[hash % AVATAR_PALETTE.length];
+}
 
 interface Props {
   initialInvoices: InvoiceRow[];
@@ -118,7 +139,6 @@ export function InvoicesClient({ initialInvoices, totalCount }: Props) {
     }
   }
 
-  // ── Record payment state ──
   const [paymentTarget, setPaymentTarget] = useState<InvoiceRow | null>(null);
   const [paymentAmount, setPaymentAmount] = useState("");
   const [isRecordingPayment, setIsRecordingPayment] = useState(false);
@@ -163,118 +183,160 @@ export function InvoicesClient({ initialInvoices, totalCount }: Props) {
   const from = (page - 1) * limit + 1;
   const to = Math.min(page * limit, count);
 
-  // Derived KPI values
   const paidCount = invoices.filter((i) => i.status === "paid").length;
   const overdueCount = invoices.filter((i) => i.status === "overdue").length;
+  const outstandingAmount = invoices.reduce((s, i) => s + Math.max(0, i.total_amount - i.amount_paid), 0);
+  const collectedAmount = invoices.reduce((s, i) => s + i.amount_paid, 0);
 
   return (
-    <div className="space-y-6">
-      {/* ── Module Hero Strip ────────────────────────────────────────────── */}
-      <div className="rounded-2xl overflow-hidden shadow-sm border border-emerald-100">
-        <div className="relative h-24 bg-linear-to-r from-emerald-500 to-teal-600 px-6 flex items-center justify-between overflow-hidden">
-          <div className="absolute -top-6 -right-6 w-32 h-32 rounded-full bg-white/10" />
-          <div className="absolute top-4 right-16 w-16 h-16 rounded-full bg-white/5" />
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
-              <FileText className="h-6 w-6 text-white" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-white">Sales &amp; Invoices</h1>
-              <p className="text-sm text-white/70">Track invoices, payments and outstanding balances</p>
-            </div>
-          </div>
+    <div className="space-y-5 sm:space-y-6">
+      {/* ── Premium Hero ─────────────────────────────────────────────── */}
+      <PremiumHero
+        gradient="emerald"
+        icon={FileText}
+        eyebrow={<><Sparkles className="size-3" /> Revenue Pipeline</>}
+        title="Sales & Invoices"
+        description="Issue invoices, track collections and chase outstanding balances."
+        actions={
           <Button
             asChild
-            className="bg-white text-emerald-700 hover:bg-emerald-50 font-semibold shadow-sm shrink-0"
+            size="sm"
+            className="bg-white text-emerald-700 hover:bg-emerald-50 font-semibold shadow-md shrink-0"
           >
             <Link href="/sales/new">
-              <Plus className="h-4 w-4 mr-1.5" />
+              <Plus className="size-4 mr-1.5" />
               New Invoice
             </Link>
           </Button>
-        </div>
-        <div className="bg-white px-6 py-3 flex flex-wrap gap-4 border-t border-emerald-100">
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-500" />
-            <span className="text-sm text-slate-600 font-medium">{count} Total Invoices</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-teal-400" />
-            <span className="text-sm text-slate-600 font-medium">{paidCount} Paid</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-red-400" />
-            <span className="text-sm text-slate-600 font-medium">{overdueCount} Overdue</span>
-          </div>
-        </div>
-      </div>
+        }
+      >
+        <HeroStatGrid>
+          <HeroStat icon={Receipt}     label="Invoices"     value={count.toLocaleString()} />
+          <HeroStat icon={TrendingUp}  label="Paid"         value={paidCount}                      accent="success" />
+          <HeroStat icon={AlertCircle} label="Overdue"      value={overdueCount}                   accent="danger" />
+          <HeroStat icon={Wallet}      label="Outstanding"  value={`KES ${KES(outstandingAmount)}`} accent="warning" />
+        </HeroStatGrid>
+      </PremiumHero>
 
-      {/* ── KPI Cards ────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="rounded-xl bg-white border border-slate-200 shadow-sm overflow-hidden">
-          <div className="h-1 bg-linear-to-r from-emerald-500 to-teal-600" />
-          <div className="p-4 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center shrink-0">
-              <FileText className="h-5 w-5 text-emerald-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-slate-900">{count}</p>
-              <p className="text-xs text-slate-500 font-medium">Total Invoices</p>
-            </div>
-          </div>
-        </div>
-        <div className="rounded-xl bg-white border border-slate-200 shadow-sm overflow-hidden">
-          <div className="h-1 bg-linear-to-r from-emerald-500 to-teal-600" />
-          <div className="p-4 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-teal-100 flex items-center justify-center shrink-0">
-              <TrendingUp className="h-5 w-5 text-teal-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-slate-900">{paidCount}</p>
-              <p className="text-xs text-slate-500 font-medium">Paid Invoices</p>
-            </div>
-          </div>
-        </div>
-        <div className="rounded-xl bg-white border border-slate-200 shadow-sm overflow-hidden">
-          <div className="h-1 bg-linear-to-r from-emerald-500 to-teal-600" />
-          <div className="p-4 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center shrink-0">
-              <AlertCircle className="h-5 w-5 text-red-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-slate-900">{overdueCount}</p>
-              <p className="text-xs text-slate-500 font-medium">Overdue</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Search / Filter Bar ───────────────────────────────────────────── */}
-      <div className="bg-white rounded-xl border border-slate-200 p-3 flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1 max-w-xs">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+      {/* ── Search / Filter Bar ──────────────────────────────────────── */}
+      <div className="bg-white rounded-xl border border-slate-200 p-3 flex flex-col sm:flex-row gap-3 shadow-sm">
+        <div className="relative flex-1 sm:max-w-xs">
+          <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
           <Input
-            placeholder="Search invoice number…"
+            placeholder="Search invoice or customer…"
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             className="pl-9 focus-visible:ring-emerald-500"
           />
         </div>
         <Select value={status} onValueChange={(v) => { setStatus(v); setPage(1); }}>
-          <SelectTrigger className="w-36">
+          <SelectTrigger className="sm:w-40">
             <SelectValue placeholder="All status" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All</SelectItem>
+            <SelectItem value="all">All Status</SelectItem>
             {Object.entries(statusConfig).map(([k, v]) => (
               <SelectItem key={k} value={k}>{v.label}</SelectItem>
             ))}
           </SelectContent>
         </Select>
+        <div className="hidden sm:flex items-center gap-2 ml-auto">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">
+            <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            KES {KES(collectedAmount)} collected
+          </span>
+        </div>
       </div>
 
-      {/* ── Table ────────────────────────────────────────────────────────── */}
-      <div className="rounded-xl border border-slate-200 overflow-hidden bg-white shadow-sm">
+      {/* ── Mobile: Invoice Cards ────────────────────────────────────── */}
+      <div className="grid grid-cols-1 gap-2.5 md:hidden">
+        {isLoading ? (
+          Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="rounded-xl border border-slate-200 bg-white p-3">
+              <Skeleton className="h-5 w-2/3 mb-2" />
+              <Skeleton className="h-3 w-1/3" />
+            </div>
+          ))
+        ) : invoices.length === 0 ? (
+          <EmptyState
+            icon={FileText}
+            title="No invoices found"
+            description="Create your first invoice to get started."
+            action={
+              <Button asChild className="bg-linear-to-r from-emerald-600 to-teal-600 text-white hover:from-emerald-700 hover:to-teal-700">
+                <Link href="/sales/new"><Plus className="size-4 mr-1.5" /> New Invoice</Link>
+              </Button>
+            }
+          />
+        ) : (
+          invoices.map((inv) => {
+            const cfg = statusConfig[inv.status] ?? statusConfig.draft;
+            const balance = inv.total_amount - inv.amount_paid;
+            const isOverdue = inv.status === "overdue" || (inv.status === "sent" && new Date(inv.due_date) < new Date());
+            return (
+              <div key={inv.id} className="relative overflow-hidden rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+                <div className={`absolute left-0 top-0 h-full w-1 ${cfg.dot.split(" ")[0]}`} />
+                <div className="flex items-start gap-2.5 pl-1.5">
+                  <div className={`size-9 rounded-lg bg-linear-to-br ${customerGradient(inv.customer_name)} flex items-center justify-center shrink-0 text-white font-bold text-xs shadow-sm`}>
+                    {inv.customer_name.slice(0, 2).toUpperCase()}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-start justify-between gap-2">
+                      <Link href={`/sales/${inv.id}`} className="font-mono text-sm font-semibold text-emerald-700 hover:underline truncate">
+                        {inv.invoice_number}
+                      </Link>
+                      <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold shrink-0 ${cfg.bg}`}>
+                        <span className={`size-1.5 rounded-full ${cfg.dot}`} />
+                        {cfg.label}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-600 truncate">{inv.customer_name}</p>
+                  </div>
+                </div>
+                <div className="mt-2.5 grid grid-cols-3 gap-2 pt-2 border-t border-slate-100 text-[11px]">
+                  <div>
+                    <p className="text-slate-400 uppercase tracking-wide">Total</p>
+                    <p className="font-semibold text-slate-800 tabular-nums">KES {KES(inv.total_amount)}</p>
+                  </div>
+                  <div>
+                    <p className="text-slate-400 uppercase tracking-wide">Paid</p>
+                    <p className="font-semibold text-slate-600 tabular-nums">KES {KES(inv.amount_paid)}</p>
+                  </div>
+                  <div>
+                    <p className="text-slate-400 uppercase tracking-wide">Balance</p>
+                    <p className={`font-bold tabular-nums ${balance > 0 ? "text-rose-600" : "text-emerald-600"}`}>KES {KES(balance)}</p>
+                  </div>
+                </div>
+                <div className="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between gap-2 text-[11px]">
+                  <span className={`inline-flex items-center gap-1 ${isOverdue ? "text-rose-600 font-semibold" : "text-slate-500"}`}>
+                    <CalendarDays className="size-3" />
+                    Due {dateStr(inv.due_date)}
+                  </span>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm" className="h-7 px-2 text-slate-500"><MoreHorizontal className="size-4" /></Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem asChild><Link href={`/sales/${inv.id}`}>View Invoice</Link></DropdownMenuItem>
+                      <DropdownMenuItem asChild><Link href={`/sales/statement/${inv.customer_id}`}>Customer Statement</Link></DropdownMenuItem>
+                      {inv.status === "draft" && <DropdownMenuItem onClick={() => markStatus(inv.id, "sent")}>Mark as Sent</DropdownMenuItem>}
+                      {(inv.status === "sent" || inv.status === "partial" || inv.status === "overdue") && (
+                        <DropdownMenuItem onClick={() => openPaymentDialog(inv)}><Banknote className="size-4 mr-1.5" />Record Payment</DropdownMenuItem>
+                      )}
+                      {(inv.status === "sent" || inv.status === "partial") && (
+                        <DropdownMenuItem onClick={() => markStatus(inv.id, "paid")}>Mark as Fully Paid</DropdownMenuItem>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {/* ── Desktop Table ────────────────────────────────────────────── */}
+      <div className="hidden md:block rounded-xl border border-slate-200 overflow-hidden bg-white shadow-sm">
         <Table>
           <TableHeader>
             <TableRow className="bg-slate-50 border-y border-slate-200">
@@ -300,23 +362,17 @@ export function InvoicesClient({ initialInvoices, totalCount }: Props) {
               ))
             ) : invoices.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} className="py-16 text-center">
-                  <div className="flex flex-col items-center">
-                    <div className="w-16 h-16 rounded-2xl bg-linear-to-br from-emerald-500 to-teal-600 flex items-center justify-center mb-4 shadow-lg shadow-emerald-500/30">
-                      <FileText className="h-8 w-8 text-white" />
-                    </div>
-                    <p className="font-bold text-slate-800 text-base">No invoices found</p>
-                    <p className="text-sm text-slate-500 mt-1">Create your first invoice to get started</p>
-                    <Button
-                      asChild
-                      className="mt-4 bg-linear-to-r from-emerald-500 to-teal-600 text-white hover:from-emerald-600 hover:to-teal-700"
-                    >
-                      <Link href="/sales/new">
-                        <Plus className="h-4 w-4 mr-1.5" />
-                        New Invoice
-                      </Link>
-                    </Button>
-                  </div>
+                <TableCell colSpan={9} className="p-0">
+                  <EmptyState
+                    icon={FileText}
+                    title="No invoices found"
+                    description="Create your first invoice to get started."
+                    action={
+                      <Button asChild className="bg-linear-to-r from-emerald-600 to-teal-600 text-white hover:from-emerald-700 hover:to-teal-700">
+                        <Link href="/sales/new"><Plus className="size-4 mr-1.5" /> New Invoice</Link>
+                      </Button>
+                    }
+                  />
                 </TableCell>
               </TableRow>
             ) : (
@@ -325,32 +381,42 @@ export function InvoicesClient({ initialInvoices, totalCount }: Props) {
                 const balance = inv.total_amount - inv.amount_paid;
                 const isOverdue = inv.status === "overdue" || (inv.status === "sent" && new Date(inv.due_date) < new Date());
                 return (
-                  <TableRow key={inv.id} className="hover:bg-emerald-50/20 transition-colors border-b border-slate-100">
+                  <TableRow key={inv.id} className="hover:bg-emerald-50/40 transition-colors border-b border-slate-100">
                     <TableCell>
-                      <Link href={`/sales/${inv.id}`} className="font-medium text-emerald-600 hover:underline">
+                      <Link href={`/sales/${inv.id}`} className="font-mono text-sm font-semibold text-emerald-700 hover:underline">
                         {inv.invoice_number}
                       </Link>
                     </TableCell>
-                    <TableCell className="text-slate-700">{inv.customer_name}</TableCell>
-                    <TableCell className="text-slate-500">{dateStr(inv.issue_date)}</TableCell>
-                    <TableCell className={isOverdue ? "text-red-500 font-medium" : "text-slate-500"}>
-                      {dateStr(inv.due_date)}
+                    <TableCell>
+                      <div className="flex items-center gap-2.5">
+                        <div className={`size-7 rounded-lg bg-linear-to-br ${customerGradient(inv.customer_name)} flex items-center justify-center shrink-0 text-white font-bold text-[10px] shadow-sm`}>
+                          {inv.customer_name.slice(0, 2).toUpperCase()}
+                        </div>
+                        <span className="font-medium text-slate-800 truncate">{inv.customer_name}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-slate-500 text-xs whitespace-nowrap">
+                      <span className="inline-flex items-center gap-1"><CalendarDays className="size-3 text-slate-400" />{dateStr(inv.issue_date)}</span>
+                    </TableCell>
+                    <TableCell className={`text-xs whitespace-nowrap ${isOverdue ? "text-rose-600 font-semibold" : "text-slate-500"}`}>
+                      <span className="inline-flex items-center gap-1"><CalendarDays className="size-3" />{dateStr(inv.due_date)}</span>
                     </TableCell>
                     <TableCell>
-                      <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${cfg.className}`}>
+                      <span className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px] font-semibold ${cfg.bg}`}>
+                        <span className={`size-1.5 rounded-full ${cfg.dot}`} />
                         {cfg.label}
                       </span>
                     </TableCell>
-                    <TableCell className="text-right font-medium text-slate-800">KES {KES(inv.total_amount)}</TableCell>
-                    <TableCell className="text-right text-slate-500">KES {KES(inv.amount_paid)}</TableCell>
-                    <TableCell className={`text-right font-medium ${balance > 0 ? "text-red-600" : "text-emerald-600"}`}>
+                    <TableCell className="text-right font-medium text-slate-800 tabular-nums">KES {KES(inv.total_amount)}</TableCell>
+                    <TableCell className="text-right text-slate-500 tabular-nums">KES {KES(inv.amount_paid)}</TableCell>
+                    <TableCell className={`text-right font-semibold tabular-nums ${balance > 0 ? "text-rose-600" : "text-emerald-600"}`}>
                       KES {KES(balance)}
                     </TableCell>
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <MoreHorizontal className="h-4 w-4" />
+                            <MoreHorizontal className="size-4" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
@@ -367,7 +433,7 @@ export function InvoicesClient({ initialInvoices, totalCount }: Props) {
                           )}
                           {(inv.status === "sent" || inv.status === "partial" || inv.status === "overdue") && (
                             <DropdownMenuItem onClick={() => openPaymentDialog(inv)}>
-                              <Banknote className="h-4 w-4 mr-1.5" />
+                              <Banknote className="size-4 mr-1.5" />
                               Record Payment
                             </DropdownMenuItem>
                           )}
@@ -380,7 +446,7 @@ export function InvoicesClient({ initialInvoices, totalCount }: Props) {
                           {inv.status === "draft" && (
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
-                                <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-red-600">
+                                <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-rose-600">
                                   Delete
                                 </DropdownMenuItem>
                               </AlertDialogTrigger>
@@ -393,7 +459,7 @@ export function InvoicesClient({ initialInvoices, totalCount }: Props) {
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
                                   <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction onClick={() => deleteInvoice(inv.id)} className="bg-red-600 hover:bg-red-700">
+                                  <AlertDialogAction onClick={() => deleteInvoice(inv.id)} className="bg-rose-600 hover:bg-rose-700">
                                     Delete
                                   </AlertDialogAction>
                                 </AlertDialogFooter>
@@ -413,7 +479,7 @@ export function InvoicesClient({ initialInvoices, totalCount }: Props) {
 
       {count > limit && (
         <div className="flex items-center justify-between text-sm text-slate-500">
-          <span>Showing {from}–{to} of {count}</span>
+          <span className="tabular-nums">Showing {from}–{to} of {count}</span>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>Previous</Button>
             <Button variant="outline" size="sm" disabled={to >= count} onClick={() => setPage((p) => p + 1)}>Next</Button>
@@ -421,32 +487,35 @@ export function InvoicesClient({ initialInvoices, totalCount }: Props) {
         </div>
       )}
 
-      {/* ── Record Payment Dialog ──────────────────────────────────────── */}
+      {/* ── Record Payment Dialog ────────────────────────────────────── */}
       <AlertDialog open={!!paymentTarget} onOpenChange={(open) => { if (!open) { setPaymentTarget(null); setPaymentAmount(""); } }}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2">
-              <Banknote className="h-5 w-5 text-emerald-600" />
-              Record Payment
+        <AlertDialogContent className="overflow-hidden p-0">
+          <div className="h-1.5 w-full bg-linear-to-r from-emerald-600 to-teal-600" />
+          <AlertDialogHeader className="px-6 pt-5">
+            <AlertDialogTitle className="flex items-center gap-3">
+              <div className="flex items-center justify-center size-10 rounded-xl bg-linear-to-br from-emerald-500 to-teal-600 shadow-md shadow-emerald-500/30">
+                <Banknote className="size-5 text-white" />
+              </div>
+              <span>Record Payment</span>
             </AlertDialogTitle>
             <AlertDialogDescription asChild>
-              <div className="space-y-3 text-sm">
-                <p>
+              <div className="space-y-3 text-sm mt-2">
+                <p className="text-slate-600">
                   Recording payment for <span className="font-semibold text-slate-900">{paymentTarget?.invoice_number}</span>{" "}
-                  ({paymentTarget?.customer_name})
+                  (<span className="text-slate-800">{paymentTarget?.customer_name}</span>)
                 </p>
-                <div className="grid grid-cols-2 gap-2 bg-slate-50 rounded-lg p-3 text-xs">
+                <div className="grid grid-cols-3 gap-2 bg-linear-to-br from-slate-50 to-slate-100 rounded-xl p-3 text-xs border border-slate-200">
                   <div>
-                    <span className="text-slate-500">Invoice Total</span>
-                    <p className="font-semibold text-slate-900">KES {KES(paymentTarget?.total_amount ?? 0)}</p>
+                    <span className="text-slate-500 text-[10px] uppercase tracking-wide">Invoice Total</span>
+                    <p className="font-semibold text-slate-900 tabular-nums">KES {KES(paymentTarget?.total_amount ?? 0)}</p>
                   </div>
                   <div>
-                    <span className="text-slate-500">Already Paid</span>
-                    <p className="font-semibold text-slate-900">KES {KES(paymentTarget?.amount_paid ?? 0)}</p>
+                    <span className="text-slate-500 text-[10px] uppercase tracking-wide">Already Paid</span>
+                    <p className="font-semibold text-slate-900 tabular-nums">KES {KES(paymentTarget?.amount_paid ?? 0)}</p>
                   </div>
                   <div>
-                    <span className="text-slate-500">Balance</span>
-                    <p className="font-semibold text-red-600">KES {KES((paymentTarget?.total_amount ?? 0) - (paymentTarget?.amount_paid ?? 0))}</p>
+                    <span className="text-slate-500 text-[10px] uppercase tracking-wide">Balance</span>
+                    <p className="font-bold text-rose-600 tabular-nums">KES {KES((paymentTarget?.total_amount ?? 0) - (paymentTarget?.amount_paid ?? 0))}</p>
                   </div>
                 </div>
                 <div className="space-y-1.5">
@@ -458,18 +527,18 @@ export function InvoicesClient({ initialInvoices, totalCount }: Props) {
                     value={paymentAmount}
                     onChange={(e) => setPaymentAmount(e.target.value)}
                     placeholder="Enter amount…"
-                    className="focus-visible:ring-emerald-500"
+                    className="focus-visible:ring-emerald-500 tabular-nums"
                   />
                 </div>
               </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
+          <AlertDialogFooter className="px-6 pb-5 pt-2">
             <AlertDialogCancel disabled={isRecordingPayment}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={(e) => { e.preventDefault(); recordPayment(); }}
               disabled={isRecordingPayment}
-              className="bg-emerald-600 hover:bg-emerald-700"
+              className="bg-linear-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 shadow-md shadow-emerald-500/20"
             >
               {isRecordingPayment ? "Recording…" : "Record Payment"}
             </AlertDialogAction>

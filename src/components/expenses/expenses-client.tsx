@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   Receipt, Plus, Search, Loader2, Trash2,
-  CheckCircle2, XCircle, Clock, Download,
+  CheckCircle2, XCircle, Clock, Download, Sparkles, TrendingUp, Wallet,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,12 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import Image from "next/image";
+import {
+  PremiumHero,
+  HeroStatGrid,
+  HeroStat,
+  EmptyState,
+} from "@/components/ui/premium-hero";
 
 type Expense = {
   id: string;
@@ -67,9 +73,9 @@ const KES = (v: number) =>
   new Intl.NumberFormat("en-KE", { minimumFractionDigits: 2 }).format(v);
 
 const statusConfig = {
-  pending:  { label: "Pending",  icon: Clock,        className: "bg-amber-100 text-amber-700 border-amber-200" },
-  approved: { label: "Approved", icon: CheckCircle2, className: "bg-emerald-100 text-emerald-700 border-emerald-200" },
-  rejected: { label: "Rejected", icon: XCircle,      className: "bg-red-100 text-red-700 border-red-200" },
+  pending:  { label: "Pending",  icon: Clock,        className: "bg-amber-50 text-amber-700 border-amber-200",     dot: "bg-amber-500" },
+  approved: { label: "Approved", icon: CheckCircle2, className: "bg-emerald-50 text-emerald-700 border-emerald-200", dot: "bg-emerald-500 animate-pulse" },
+  rejected: { label: "Rejected", icon: XCircle,      className: "bg-rose-50 text-rose-700 border-rose-200",          dot: "bg-rose-500" },
 };
 
 type TenantInfo = {
@@ -244,7 +250,7 @@ export default function ExpensesClient({ initialExpenses, total, tenant, payment
         }
       `}</style>
 
-      <div id="expenses-printable" className="space-y-6">
+      <div id="expenses-printable" className="space-y-4 sm:space-y-6">
         {/* Print-only company header */}
         <div className="hidden print-only" style={{ display: "none" }}>
           <div className="flex items-start justify-between mb-4">
@@ -268,80 +274,176 @@ export default function ExpensesClient({ initialExpenses, total, tenant, payment
           <div className="border-t-2 border-indigo-600 mb-4" />
         </div>
 
-        {/* Header */}
-        <div className="flex items-center justify-between no-print">
-          <div>
-            <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">Expenses</h1>
-            <p className="text-slate-500 text-sm mt-0.5">{total} expense{total !== 1 ? "s" : ""} tracked</p>
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => window.print()} className="gap-2 hidden sm:flex">
-              <Download className="h-4 w-4" />Export
-            </Button>
-            <Button
-              onClick={() => setSheetOpen(true)}
-              className="gap-2 bg-linear-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 border-0 text-white shadow-lg shadow-indigo-500/20"
-            >
-              <Plus className="h-4 w-4" />New Expense
-            </Button>
-          </div>
-        </div>
-
-        {/* KPI cards */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 no-print">
-          {[
-            { label: "Total Expenses",    value: `KES ${KES(totalAmount)}`,  icon: Receipt,      gradient: "from-indigo-500 to-violet-600", bg: "bg-indigo-50",  color: "text-indigo-600" },
-            { label: "Pending Approval",  value: String(pendingCount),        icon: Clock,        gradient: "from-amber-500 to-orange-500",  bg: "bg-amber-50",   color: "text-amber-600" },
-            { label: "Approved Total",    value: `KES ${KES(approvedTotal)}`, icon: CheckCircle2, gradient: "from-emerald-500 to-teal-600",  bg: "bg-emerald-50", color: "text-emerald-600" },
-          ].map(({ label, value, icon: Icon, gradient, bg, color }) => (
-            <Card key={label} className="relative overflow-hidden border-0 shadow-sm">
-              <div className={`h-1 w-full bg-linear-to-r ${gradient}`} />
-              <CardContent className="pt-4 pb-4">
-                <div className="flex items-start justify-between mb-2">
-                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{label}</p>
-                  <div className={`w-9 h-9 rounded-xl ${bg} flex items-center justify-center`}>
-                    <Icon className={`h-4 w-4 ${color}`} />
-                  </div>
-                </div>
-                <p className="text-2xl font-extrabold text-slate-900">{value}</p>
-              </CardContent>
-            </Card>
-          ))}
+        <div className="no-print">
+          <PremiumHero
+            gradient="violet"
+            icon={Receipt}
+            eyebrow={
+              <>
+                <Sparkles className="size-3 sm:size-3.5" />
+                Expense Management
+              </>
+            }
+            title="Expenses"
+            description={`${total} expense${total !== 1 ? "s" : ""} tracked · approvals & payment channels`}
+            actions={
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => window.print()}
+                  className="gap-1.5 hidden sm:flex bg-white/10 border-white/30 text-white hover:bg-white/20 hover:text-white"
+                >
+                  <Download className="size-3.5" />Export
+                </Button>
+                <Button
+                  onClick={() => setSheetOpen(true)}
+                  size="sm"
+                  className="bg-white text-violet-700 hover:bg-white/90 font-semibold shadow-md gap-1.5"
+                >
+                  <Plus className="size-3.5" />New Expense
+                </Button>
+              </>
+            }
+          >
+            <HeroStatGrid>
+              <HeroStat icon={Receipt} label="Total expenses" value={`KES ${KES(totalAmount)}`} sub={`${expenses.length} records`} />
+              <HeroStat icon={Clock} label="Pending" value={String(pendingCount)} sub="awaiting approval" accent={pendingCount > 0 ? "warning" : "default"} />
+              <HeroStat icon={CheckCircle2} label="Approved" value={`KES ${KES(approvedTotal)}`} sub={`${expenses.filter((e) => e.status === "approved").length} items`} accent="success" />
+              <HeroStat icon={TrendingUp} label="Avg ticket" value={expenses.length > 0 ? `KES ${KES(totalAmount / expenses.length)}` : "KES 0"} sub="per expense" accent="info" />
+            </HeroStatGrid>
+          </PremiumHero>
         </div>
 
         {/* Search */}
-        <div className="relative no-print">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-          <Input
-            placeholder="Search expenses..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9 h-10 bg-white border-slate-200"
-          />
+        <div className="no-print bg-white rounded-xl border border-slate-200 p-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <Input
+              placeholder="Search expenses by number, description, or category…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9 h-10 bg-white border-slate-200 focus-visible:ring-violet-500"
+            />
+          </div>
         </div>
 
-        {/* Table */}
-        <Card className="border-0 shadow-sm">
-          <CardHeader className="pb-0">
-            <CardTitle className="text-base font-bold text-slate-900">Expense Records</CardTitle>
+        {/* Mobile expense cards */}
+        <div className="grid grid-cols-1 gap-2.5 md:hidden no-print">
+          {filtered.length === 0 ? (
+            <div className="rounded-xl border border-slate-200 bg-white">
+              <EmptyState
+                icon={Receipt}
+                title="No expenses found"
+                description="Submit your first expense to get started."
+                action={
+                  <Button
+                    size="sm"
+                    onClick={() => setSheetOpen(true)}
+                    className="bg-linear-to-br from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-white gap-1.5"
+                  >
+                    <Plus className="size-3.5" /> New expense
+                  </Button>
+                }
+              />
+            </div>
+          ) : (
+            filtered.map((exp) => {
+              const st = statusConfig[exp.status];
+              return (
+                <div
+                  key={exp.id}
+                  className="relative overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm"
+                >
+                  <div className="absolute top-0 left-0 right-0 h-1 bg-linear-to-r from-violet-500 via-purple-500 to-fuchsia-500" />
+                  <div className="p-3 pt-3.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-semibold text-slate-900 truncate">{exp.description}</p>
+                        <p className="text-[11px] text-slate-500 font-mono truncate">
+                          {exp.expense_number} · {exp.category}
+                        </p>
+                      </div>
+                      <span
+                        className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px] font-semibold shrink-0 ${st.className}`}
+                      >
+                        <span className={`size-1.5 rounded-full ${st.dot}`} />
+                        {st.label}
+                      </span>
+                    </div>
+                    <div className="mt-2 pt-2 border-t border-slate-100 grid grid-cols-2 gap-2 text-[11px]">
+                      <div>
+                        <p className="uppercase tracking-wide font-semibold text-slate-400">Amount</p>
+                        <p className="font-bold text-slate-900 tabular-nums mt-0.5">KES {KES(exp.amount)}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="uppercase tracking-wide font-semibold text-slate-400">Date</p>
+                        <p className="font-semibold text-slate-700 tabular-nums mt-0.5">
+                          {new Date(exp.expense_date).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "2-digit" })}
+                        </p>
+                      </div>
+                      <div className="col-span-2">
+                        <p className="uppercase tracking-wide font-semibold text-slate-400">Paid via</p>
+                        <p className="text-slate-700 truncate mt-0.5">{PAYMENT_METHOD_LABELS[exp.payment_method] ?? exp.payment_method}</p>
+                      </div>
+                    </div>
+                    {exp.status !== "approved" && (
+                      <div className="mt-2 pt-2 border-t border-slate-100 flex items-center justify-end gap-1.5">
+                        {exp.status === "pending" && (
+                          <>
+                            <Button size="sm" variant="outline" onClick={() => handleApprove(exp.id)}
+                              className="h-7 gap-1 text-emerald-700 border-emerald-200 hover:bg-emerald-50" disabled={isPending}>
+                              <CheckCircle2 className="size-3.5" /> Approve
+                            </Button>
+                            <Button size="sm" variant="outline" onClick={() => handleReject(exp.id)}
+                              className="h-7 gap-1 text-rose-700 border-rose-200 hover:bg-rose-50" disabled={isPending}>
+                              <XCircle className="size-3.5" /> Reject
+                            </Button>
+                          </>
+                        )}
+                        <Button size="sm" variant="ghost" onClick={() => handleDelete(exp.id)}
+                          className="h-7 px-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50" disabled={isPending}>
+                          <Trash2 className="size-3.5" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {/* Desktop expense table */}
+        <Card className="border-0 shadow-sm overflow-hidden hidden md:block">
+          <div className="h-1 w-full bg-linear-to-r from-violet-500 via-purple-500 to-fuchsia-500" />
+          <CardHeader className="pb-0 pt-4">
+            <CardTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
+              <Wallet className="size-4 text-violet-600" />
+              Expense Records
+            </CardTitle>
           </CardHeader>
           <CardContent className="p-0 mt-3">
             {filtered.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-center">
-                <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center mb-4">
-                  <Receipt className="h-6 w-6 text-slate-400" />
-                </div>
-                <p className="text-slate-500 font-medium mb-1">No expenses found</p>
-                <p className="text-slate-400 text-sm mb-4">Submit your first expense to get started</p>
-                <Button size="sm" onClick={() => setSheetOpen(true)} className="gap-2 no-print">
-                  <Plus className="h-4 w-4" />New Expense
-                </Button>
-              </div>
+              <EmptyState
+                icon={Receipt}
+                title="No expenses found"
+                description="Submit your first expense to get started."
+                action={
+                  <Button
+                    size="sm"
+                    onClick={() => setSheetOpen(true)}
+                    className="bg-linear-to-br from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-white gap-1.5"
+                  >
+                    <Plus className="size-3.5" /> New expense
+                  </Button>
+                }
+              />
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-y bg-slate-50 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                    <tr className="border-y border-slate-200 bg-slate-50 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
                       <th className="px-4 py-2.5 whitespace-nowrap">Expense #</th>
                       <th className="px-4 py-2.5 whitespace-nowrap">Description</th>
                       <th className="px-4 py-2.5 whitespace-nowrap">Category</th>
@@ -352,26 +454,26 @@ export default function ExpensesClient({ initialExpenses, total, tenant, payment
                       <th className="px-4 py-2.5 no-print" />
                     </tr>
                   </thead>
-                  <tbody className="divide-y">
+                  <tbody className="divide-y divide-slate-100">
                     {filtered.map((exp) => {
                       const st = statusConfig[exp.status];
-                      const Icon = st.icon;
                       return (
-                        <tr key={exp.id} className="hover:bg-slate-50/50 transition-colors">
+                        <tr key={exp.id} className="hover:bg-violet-50/30 transition-colors">
                           <td className="px-4 py-3 font-mono text-xs text-slate-500">{exp.expense_number}</td>
                           <td className="px-4 py-3">
                             <p className="font-semibold text-slate-900">{exp.description}</p>
                             {exp.notes && <p className="text-xs text-slate-400 truncate max-w-48">{exp.notes}</p>}
                           </td>
                           <td className="px-4 py-3 text-slate-600">{exp.category}</td>
-                          <td className="px-4 py-3 text-slate-600">
+                          <td className="px-4 py-3 text-slate-600 tabular-nums">
                             {new Date(exp.expense_date).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" })}
                           </td>
                           <td className="px-4 py-3 text-slate-500">{PAYMENT_METHOD_LABELS[exp.payment_method] ?? exp.payment_method}</td>
-                          <td className="px-4 py-3 text-right font-bold text-slate-900">KES {KES(exp.amount)}</td>
+                          <td className="px-4 py-3 text-right font-bold text-slate-900 tabular-nums">KES {KES(exp.amount)}</td>
                           <td className="px-4 py-3">
-                            <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold border ${st.className}`}>
-                              <Icon className="h-3 w-3" />{st.label}
+                            <span className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px] font-semibold ${st.className}`}>
+                              <span className={`size-1.5 rounded-full ${st.dot}`} />
+                              {st.label}
                             </span>
                           </td>
                           <td className="px-4 py-3 no-print">
@@ -383,14 +485,14 @@ export default function ExpensesClient({ initialExpenses, total, tenant, payment
                                     <CheckCircle2 className="h-3.5 w-3.5" />
                                   </Button>
                                   <Button size="sm" variant="ghost" onClick={() => handleReject(exp.id)}
-                                    className="h-7 px-2 text-red-500 hover:text-red-600 hover:bg-red-50" disabled={isPending}>
+                                    className="h-7 px-2 text-rose-500 hover:text-rose-600 hover:bg-rose-50" disabled={isPending}>
                                     <XCircle className="h-3.5 w-3.5" />
                                   </Button>
                                 </>
                               )}
                               {exp.status !== "approved" && (
                                 <Button size="sm" variant="ghost" onClick={() => handleDelete(exp.id)}
-                                  className="h-7 px-2 text-slate-400 hover:text-red-500 hover:bg-red-50" disabled={isPending}>
+                                  className="h-7 px-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50" disabled={isPending}>
                                   <Trash2 className="h-3.5 w-3.5" />
                                 </Button>
                               )}
@@ -410,15 +512,15 @@ export default function ExpensesClient({ initialExpenses, total, tenant, payment
       {/* New Expense Sheet */}
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
         <SheetContent className="w-full sm:max-w-md flex flex-col p-0 overflow-hidden">
-          <div className="h-1.5 w-full bg-linear-to-r from-indigo-500 to-violet-600 shrink-0" />
+          <div className="h-1.5 w-full bg-linear-to-r from-violet-500 via-purple-500 to-fuchsia-500 shrink-0" />
           <SheetHeader className="px-6 pt-5 pb-4 shrink-0">
             <div className="flex items-center gap-3">
-              <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-indigo-100">
-                <Receipt className="size-4 text-indigo-600" />
+              <div className="flex items-center justify-center size-10 rounded-xl bg-linear-to-br from-violet-500 to-purple-600 shadow-md">
+                <Receipt className="size-4 text-white" />
               </div>
               <SheetTitle className="text-slate-900 text-lg font-semibold">Submit Expense</SheetTitle>
             </div>
-            <SheetDescription className="text-slate-500 text-sm mt-1 ml-12">
+            <SheetDescription className="text-slate-500 text-sm mt-1 ml-13">
               Record a business expense for approval.
             </SheetDescription>
           </SheetHeader>
@@ -516,7 +618,7 @@ export default function ExpensesClient({ initialExpenses, total, tenant, payment
             <Separator className="shrink-0" />
             <SheetFooter className="px-6 py-4 shrink-0 bg-slate-50 flex flex-row justify-end gap-2">
               <Button type="button" variant="outline" onClick={() => setSheetOpen(false)}>Cancel</Button>
-              <Button type="submit" disabled={submitting} className="bg-indigo-600 hover:bg-indigo-700 text-white min-w-32">
+              <Button type="submit" disabled={submitting} className="bg-linear-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white min-w-32 shadow-md">
                 {submitting ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Submitting…</> : "Submit Expense"}
               </Button>
             </SheetFooter>

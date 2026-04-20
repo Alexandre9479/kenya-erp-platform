@@ -20,7 +20,9 @@ import {
   Building2,
   Receipt,
   Landmark,
+  Sparkles,
 } from "lucide-react";
+import { PremiumHero } from "@/components/ui/premium-hero";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -232,64 +234,57 @@ export function ReportsClient() {
         }
       `}</style>
 
-      {/* ── Module Hero Strip ──────────────────────────────── */}
-      <div className="relative rounded-2xl overflow-hidden bg-linear-to-r from-indigo-600 via-violet-600 to-indigo-700 p-4 sm:p-6 text-white shadow-lg no-print">
-        <div className="absolute -top-8 -right-8 w-40 h-40 rounded-full bg-white/10" />
-        <div className="absolute -bottom-6 -right-20 w-56 h-56 rounded-full bg-white/5" />
-
-        <div className="relative flex flex-col gap-3 sm:gap-4">
-          <div className="flex items-center gap-3 sm:gap-4">
-            <div className="flex items-center justify-center w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-white/20 backdrop-blur-sm shadow-inner shrink-0">
-              <BarChart3 className="size-5 sm:size-7 text-white" />
-            </div>
-            <div>
-              <p className="text-indigo-200 text-xs sm:text-sm font-medium tracking-wide uppercase">Analytics</p>
-              <h1 className="text-lg sm:text-2xl font-bold tracking-tight">Business Reports</h1>
-              <p className="text-indigo-200 text-sm mt-0.5 hidden sm:block">Financial statements, aging & VAT reports</p>
-            </div>
-          </div>
-
-          {/* Date filter row inside hero */}
-          <div className="flex flex-wrap items-end gap-2 sm:gap-3 bg-white/10 backdrop-blur-sm rounded-xl p-3 sm:p-4">
-            <Calendar className="size-4 text-indigo-200 mt-auto mb-1 hidden sm:block" />
+      {/* ── Premium Hero ──────────────────────────────────────── */}
+      <div className="no-print">
+        <PremiumHero
+          gradient="violet"
+          icon={BarChart3}
+          eyebrow={<><Sparkles className="size-3" /> Analytics</>}
+          title="Business Reports"
+          description="Financial statements, aging schedules and VAT returns — KRA-ready."
+          actions={
+            activeTab !== "dashboard" ? (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => window.print()}
+                className="bg-white/15 border-white/30 text-white hover:bg-white/25 font-semibold backdrop-blur-sm"
+              >
+                <Printer className="size-4 mr-1.5" />Print
+              </Button>
+            ) : undefined
+          }
+        >
+          <div className="flex flex-wrap items-end gap-2 sm:gap-3 rounded-xl border border-white/20 bg-white/10 backdrop-blur-sm p-3 sm:p-4">
+            <Calendar className="size-4 text-white/80 mt-auto mb-1 hidden sm:block" />
             <div className="space-y-1 flex-1 min-w-28 sm:flex-none">
-              <Label className="text-indigo-100 text-xs font-medium">From</Label>
+              <Label className="text-white/80 text-xs font-medium">From</Label>
               <Input
                 type="date"
                 value={from}
                 onChange={(e) => setFrom(e.target.value)}
-                className="w-full sm:w-36 bg-white/20 border-white/30 text-white placeholder:text-indigo-200 scheme-dark h-8 text-sm"
+                className="w-full sm:w-36 bg-white/20 border-white/30 text-white placeholder:text-white/70 scheme-dark h-8 text-sm"
               />
             </div>
             <div className="space-y-1 flex-1 min-w-28 sm:flex-none">
-              <Label className="text-indigo-100 text-xs font-medium">To</Label>
+              <Label className="text-white/80 text-xs font-medium">To</Label>
               <Input
                 type="date"
                 value={to}
                 onChange={(e) => setTo(e.target.value)}
-                className="w-full sm:w-36 bg-white/20 border-white/30 text-white placeholder:text-indigo-200 scheme-dark h-8 text-sm"
+                className="w-full sm:w-36 bg-white/20 border-white/30 text-white placeholder:text-white/70 scheme-dark h-8 text-sm"
               />
             </div>
             <Button
               onClick={handleGenerate}
               disabled={isLoading}
               size="sm"
-              className="bg-white text-indigo-700 hover:bg-indigo-50 font-semibold shadow-md h-8 text-sm"
+              className="bg-white text-violet-700 hover:bg-violet-50 font-semibold shadow-md h-8 text-sm"
             >
               {isLoading ? "Loading…" : "Generate"}
             </Button>
-            {activeTab !== "dashboard" && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => window.print()}
-                className="text-white hover:bg-white/20 h-8 text-sm gap-1.5"
-              >
-                <Printer className="size-3.5" />Print
-              </Button>
-            )}
           </div>
-        </div>
+        </PremiumHero>
       </div>
 
       {/* ── Tabs Navigation ──────────────────────────────────── */}
