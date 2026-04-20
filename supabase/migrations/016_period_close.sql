@@ -29,17 +29,22 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_fiscal_periods_unique_range
 -- closed period. Attached only to the journal for now (the
 -- financial source of truth); extend to invoices/expenses later
 -- by re-attaching the trigger.
+-- NOTE: field lookups go through to_jsonb(NEW) because PL/pgSQL
+-- validates every NEW.<field> reference at execution time even
+-- inside COALESCE — so a direct NEW.invoice_date would fail on
+-- journal_entries which has no such column.
 CREATE OR REPLACE FUNCTION enforce_period_open()
 RETURNS TRIGGER AS $$
 DECLARE
   v_status TEXT;
   v_date   DATE;
+  v_row    JSONB := to_jsonb(NEW);
 BEGIN
   v_date := COALESCE(
-    NEW.entry_date::date,
-    NEW.invoice_date::date,
-    NEW.expense_date::date,
-    NEW.order_date::date,
+    (v_row ->> 'entry_date')::date,
+    (v_row ->> 'invoice_date')::date,
+    (v_row ->> 'expense_date')::date,
+    (v_row ->> 'order_date')::date,
     current_date
   );
 
